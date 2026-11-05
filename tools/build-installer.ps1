@@ -14,6 +14,25 @@ $env:AVALONIA_TELEMETRY_OPTOUT = "1"
 
 if (Test-Path $publish) { Remove-Item $publish -Recurse -Force }
 
+# Always compile from scratch. A build reuses earlier results, even when they were made with other settings:
+# that has put a program without admin rights, and this computer's folder paths, into an installer.
+foreach ($project in "src\MfgManager.Core", "src\MfgManager.App", "installer\CustomActions", "installer") {
+    foreach ($folder in "bin\Release", "obj\Release") {
+        $old = Join-Path $root "$project\$folder"
+        if (Test-Path $old) { Remove-Item $old -Recurse -Force }
+    }
+}
+
+# The names of the files that mention this computer's folders. These files are going to be public.
+function Find-BuildPaths($files, [string[]]$folders) {
+    $latin1 = [Text.Encoding]::GetEncoding(28591)
+    $needles = $folders | ForEach-Object { $latin1.GetString([Text.Encoding]::UTF8.GetBytes($_)) }
+    foreach ($file in $files) {
+        $text = $latin1.GetString([IO.File]::ReadAllBytes($file.FullName))
+        if ($needles | Where-Object { $text.IndexOf($_, [StringComparison]::OrdinalIgnoreCase) -ge 0 }) { $file.Name }
+    }
+}
+
 dotnet publish "$root\src\MfgManager.App" -c Release -r win-x64 --self-contained false -o $publish -p:DebugType=None -p:DebugSymbols=false
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
@@ -46,4 +65,12 @@ if (Test-Path $cultureFolder) {
 
 $msi = Join-Path $artifacts $msiName
 if (-not (Test-Path $msi)) { throw "Expected $msi but it isn't there" }
+
+# The last check before anyone can share it, including the custom actions, which end up compressed inside the installer.
+$packed = @(Get-ChildItem $publish -File -Recurse) + @(Get-ChildItem $artifacts -Filter "MfgManager.Installer.CustomActions.dll")
+$leaks = @(Find-BuildPaths $packed @($root, $env:USERPROFILE))
+if ($leaks.Count -gt 0) {
+    Remove-Item $msi -Force
+    throw "These files mention this computer's folders, so the installer was deleted: $($leaks -join ', ')"
+}
 "Built $msi"

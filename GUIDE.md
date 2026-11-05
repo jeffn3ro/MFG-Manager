@@ -318,7 +318,7 @@ This skips the admin prompt, and the next normal build puts it back.
 powershell -File tools/build-installer.ps1
 ```
 
-This makes `artifacts/MFG-Manager-<version>.msi`. The script leaves out debug files, which would contain the build computer's folder paths, and stops with an error if the program wouldn't ask for admin rights or still allows startup hooks.
+This makes `artifacts/MFG-Manager-<version>.msi`. It always compiles from scratch, because a build otherwise reuses earlier results even when they were made with other settings. It stops with an error if the program wouldn't ask for admin rights, still allows startup hooks, or mentions the build computer's folders. Release builds leave out debug information because it holds those paths. Share only the `.msi`: the `.wixpdb` next to it, if there is one, is for developers and can contain them.
 
 Installing replaces the old version and keeps the `Mods` folder and settings. Uninstalling removes `Mods` too, but your settings and the mod in your games stay, so use **Revert all** first if you want the games clean.
 

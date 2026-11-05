@@ -219,6 +219,19 @@ public class PackagingTests
     }
 
     [Fact]
+    public void Files_people_download_cant_hold_this_computers_folder_paths()
+    {
+        // Debug information holds them. It once reached a public installer, through an earlier compile that was reused.
+        XElement release = XDocument.Load(Path.Combine(Root, "Directory.Build.props")).Descendants("PropertyGroup")
+            .Single(group => group.Attribute("Condition")?.Value == "'$(Configuration)' == 'Release'");
+        Assert.Equal("none", release.Element("DebugType")?.Value);
+
+        string script = File.ReadAllText(Path.Combine(Root, "tools", "build-installer.ps1"));
+        Assert.Contains("""foreach ($folder in "bin\Release", "obj\Release")""", script);
+        Assert.Contains("Find-BuildPaths $packed", script);
+    }
+
+    [Fact]
     public void Every_class_has_its_own_file()
     {
         // A type nested inside a class is indented, so only top-level types start at the beginning of a line.
