@@ -40,6 +40,10 @@ public class SteamStoreTests
             SteamStore.ParseCoverUrl(ItemsJson));
 
     [Fact]
+    public void No_cover_address_when_steam_gives_none() =>
+        Assert.Null(SteamStore.ParseCoverUrl("""{"response":{"store_items":[{"assets":{"asset_url_format":null,"library_capsule":"x"}}]}}"""));
+
+    [Fact]
     public void Reads_drm_notices()
     {
         StoreDrm drm = SteamStore.ParseDrm(DetailsJson, 3751950);

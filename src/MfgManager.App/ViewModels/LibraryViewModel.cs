@@ -199,9 +199,11 @@ public sealed class LibraryViewModel : ObservableObject
                 game.CoverPath = await _store.GetCoverAsync(game.Game, steamFolder);
                 game.StoreDrm = await _store.GetDrmAsync(game.Game);
             }
-            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException or IOException)
+            // The last three come from an answer that's valid JSON but not what Steam normally sends.
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException or IOException or UnauthorizedAccessException
+                or KeyNotFoundException or InvalidOperationException or FormatException)
             {
-                // No internet or the store is down: the card just keeps its placeholder.
+                // No internet, the store is down, or its answer can't be used: the card just keeps its placeholder.
             }
         }
         try

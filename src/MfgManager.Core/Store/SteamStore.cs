@@ -137,7 +137,9 @@ public sealed partial class SteamStore(HttpClient http, string cacheFolder) : ID
         {
             return null;
         }
-        return "https://shared.akamai.steamstatic.com/store_item_assets/" + format.GetString()!.Replace("${FILENAME}", capsule.GetString());
+        return format.GetString() is { } address
+            ? "https://shared.akamai.steamstatic.com/store_item_assets/" + address.Replace("${FILENAME}", capsule.GetString())
+            : null;
     }
 
     /// <summary>Reads the DRM notices from Steam's "appdetails" answer.</summary>
@@ -187,7 +189,9 @@ public sealed partial class SteamStore(HttpClient http, string cacheFolder) : ID
                 catch (JsonException) { }
             }
             _cache ??= new StoreCache();
-            _cache.AppIds = new Dictionary<string, int?>(_cache.AppIds, StringComparer.OrdinalIgnoreCase);
+            // Any program can change this file, and valid JSON can still say null for these.
+            _cache.AppIds = new Dictionary<string, int?>(_cache.AppIds ?? [], StringComparer.OrdinalIgnoreCase);
+            _cache.Drm ??= [];
             return _cache;
         }
         finally { _cacheLock.Release(); }

@@ -214,7 +214,7 @@ Because the app runs as admin on Windows, anything from outside is treated with 
 - A newer `MFGUnlocker.dll` in Downloads is never used silently, because a DLL's "MFG Unlocker" name is easy to fake.
 - `settings.json` can be changed by any program, so a DLL path in it only counts inside the `Mods` folder, an install name only counts if the mod supports it, and a saved .exe only counts inside the game's folder.
 - The mod is never put in the Windows folder, whatever a launcher's files or `settings.json` say.
-- A damaged `settings.json`, a strange answer from GitHub or a DLL with a nonsense version can't stop the app or its scan.
+- A damaged `settings.json` or cache file, a strange answer from GitHub or Steam, or a DLL with a nonsense version can't stop the app or its scan.
 - Web addresses from GitHub must be `https://`, and the release page must be on `github.com`.
 - Downloads and zips have size limits, and the code that reads DLLs checks every offset.
 - Web links open through Explorer or `xdg-open`, so your browser doesn't run as admin, and no shell is involved.
