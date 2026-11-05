@@ -1,6 +1,5 @@
 using Avalonia;
 using Avalonia.Headless;
-using MfgManager.App;
 using MfgManager.Tests.Components;
 
 [assembly: AvaloniaTestApplication(typeof(TestApp))]

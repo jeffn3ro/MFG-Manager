@@ -1,5 +1,5 @@
-using Microsoft.Win32;
 using MfgManager.Core.Models;
+using Microsoft.Win32;
 
 namespace MfgManager.Core.Scanning.Launchers;
 
@@ -9,17 +9,18 @@ public static class SteamLibrary
     /// <summary>Installed like games but not games: redistributables, the SDK, SteamVR, and Linux's Proton and runtime tools.</summary>
     private static readonly HashSet<int> NotGames = [228980, 1007, 250820];
     private static readonly string[] ToolNamePrefixes = ["Proton ", "Steam Linux Runtime", "Steamworks "];
+    private static readonly string[] LinuxFolders = [".local/share/Steam", ".steam/steam", ".var/app/com.valvesoftware.Steam/.local/share/Steam"];
 
     public static string? FindSteamFolder() => OperatingSystem.IsWindows() ? FindOnWindows() : FindOnLinux(Home);
 
     private static string Home => Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
     private static string? FindOnWindows() =>
-        OperatingSystem.IsWindows() ? Registry.GetValue(@"HKEY_CURRENT_USER\Software\Valve\Steam", "SteamPath", null) as string : null;
+        OperatingSystem.IsWindows() ? Registry.GetValue("""HKEY_CURRENT_USER\Software\Valve\Steam""", "SteamPath", null) as string : null;
 
     /// <summary>The normal locations on Linux, then the Flatpak one.</summary>
     public static string? FindOnLinux(string home) =>
-        new[] { ".local/share/Steam", ".steam/steam", ".var/app/com.valvesoftware.Steam/.local/share/Steam" }
+        LinuxFolders
             .Select(folder => Path.Combine(home, folder))
             .FirstOrDefault(folder => Directory.Exists(Path.Combine(folder, "steamapps")));
 
@@ -27,34 +28,33 @@ public static class SteamLibrary
     public static IReadOnlyList<string> GetLibraryFolders(string steamFolder)
     {
         var folders = new List<string> { steamFolder };
-        var vdfPath = Path.Combine(steamFolder, "steamapps", "libraryfolders.vdf");
+        string vdfPath = Path.Combine(steamFolder, "steamapps", "libraryfolders.vdf");
         if (File.Exists(vdfPath)) folders.AddRange(Vdf.GetValues(File.ReadAllText(vdfPath), "path"));
 
-        return folders
+        return [.. folders
             .Select(PathUtil.Normalize)
-            .Distinct(PathUtil.Comparer)
-            .ToList();
+            .Distinct(PathUtil.Comparer)];
     }
 
     /// <summary>Every installed game has an appmanifest_[id].acf file with its name and folder.</summary>
     public static IEnumerable<Game> FindGames(string steamFolder)
     {
-        foreach (var library in GetLibraryFolders(steamFolder))
+        foreach (string library in GetLibraryFolders(steamFolder))
         {
-            var steamapps = Path.Combine(library, "steamapps");
+            string steamapps = Path.Combine(library, "steamapps");
             if (!Directory.Exists(steamapps)) continue;
 
-            foreach (var manifest in Directory.EnumerateFiles(steamapps, "appmanifest_*.acf"))
+            foreach (string manifest in Directory.EnumerateFiles(steamapps, "appmanifest_*.acf"))
             {
-                var text = File.ReadAllText(manifest);
-                var installDir = Vdf.GetValue(text, "installdir");
+                string text = File.ReadAllText(manifest);
+                string? installDir = Vdf.GetValue(text, "installdir");
                 if (string.IsNullOrEmpty(installDir)) continue;
 
-                var folder = Path.Combine(steamapps, "common", installDir);
+                string folder = Path.Combine(steamapps, "common", installDir);
                 if (!Directory.Exists(folder)) continue;
 
-                var name = Vdf.GetValue(text, "name") ?? installDir;
-                int? appId = int.TryParse(Vdf.GetValue(text, "appid"), out var id) ? id : null;
+                string name = Vdf.GetValue(text, "name") ?? installDir;
+                int? appId = int.TryParse(Vdf.GetValue(text, "appid"), out int id) ? id : null;
                 if (IsTool(appId, name)) continue;
 
                 yield return new Game

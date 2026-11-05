@@ -24,7 +24,7 @@ public partial class App : Application
         {
             var window = new MainWindow();
             var dialogs = new Dialogs(window);
-            var viewModel = CreateMainViewModel(dialogs);
+            MainViewModel viewModel = CreateMainViewModel(dialogs);
             window.DataContext = viewModel;
             desktop.MainWindow = window;
             window.Opened += async (_, _) => await viewModel.InitializeAsync();
@@ -42,20 +42,22 @@ public partial class App : Application
     /// <summary>Creates every service and hands them to the ViewModel (Angular would do this with dependency injection).</summary>
     public static MainViewModel CreateMainViewModel(IDialogs dialogs)
     {
-        var dataFolder = AppPaths.DataFolder;
+        string dataFolder = AppPaths.DataFolder;
         var settingsStore = new SettingsStore(Path.Combine(dataFolder, "settings.json"));
-        var settings = settingsStore.Load();
+        AppSettings settings = settingsStore.Load();
         void SaveSettings() => settingsStore.Save(settings);
 
         var http = new HttpClient
         {
             Timeout = TimeSpan.FromSeconds(30),
-            MaxResponseContentBufferSize = 64 * 1024 * 1024,   // store answers and cover art are far smaller
+            // Store answers and cover art are far smaller.
+            MaxResponseContentBufferSize = 64 * 1024 * 1024,
         };
-        http.DefaultRequestHeaders.UserAgent.ParseAdd("MFG-Manager/2.0");   // GitHub requires a name
+        // GitHub requires a name.
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("MFG-Manager/2.0");
 
         AppPaths.EnsureFolder(dataFolder);
-        var modsFolder = AppPaths.ModsFolder;
+        string modsFolder = AppPaths.ModsFolder;
 
         return new MainViewModel(
             settings,
@@ -65,7 +67,6 @@ public partial class App : Application
             new SteamStore(http, Path.Combine(dataFolder, "cache")),
             new UpdateChecker(http),
             dialogs,
-            new ThemeService(),
             modsFolder,
             KnownFolders.Downloads);
     }

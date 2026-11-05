@@ -9,14 +9,12 @@ namespace MfgManager.App.ViewModels;
 /// <summary>The whole window: it creates each part and connects them. The real work is in the parts.</summary>
 public sealed class MainViewModel : ObservableObject
 {
-    private readonly ThemeService _theme;
     private readonly AppSettings _settings;
     private readonly Action _saveSettings;
 
     public MainViewModel(AppSettings settings, Action saveSettings, GameScanner scanner, ModInstaller installer, SteamStore store,
-        UpdateChecker updates, IDialogs dialogs, ThemeService theme, string modsFolder, string downloadsFolder, Func<string, bool>? isRunning = null)
+        UpdateChecker updates, IDialogs dialogs, string modsFolder, string downloadsFolder, Func<string, bool>? isRunning = null)
     {
-        _theme = theme;
         _settings = settings;
         _saveSettings = saveSettings;
 
@@ -32,7 +30,7 @@ public sealed class MainViewModel : ObservableObject
             Library.RefreshStatuses();
         };
 
-        _theme.Apply(settings.Theme);
+        ThemeService.Apply(settings.Theme);
     }
 
     public StatusViewModel Status { get; }
@@ -53,7 +51,7 @@ public sealed class MainViewModel : ObservableObject
             if (_settings.Theme == value) return;
             _settings.Theme = value;
             _saveSettings();
-            _theme.Apply(value);
+            ThemeService.Apply(value);
             OnPropertyChanged();
         }
     }

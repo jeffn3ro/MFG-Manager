@@ -54,7 +54,7 @@ public class StateTests
 
     private static void PointAt(TopLevel window, Control control)
     {
-        var point = ReachablePoint(window, control);
+        Point? point = ReachablePoint(window, control);
         Assert.NotNull(point);
         window.MouseMove(point.Value);
         Stage.Settle();
@@ -63,16 +63,17 @@ public class StateTests
     [Theory, MemberData(nameof(Modes))]
     public Task Every_button_stays_readable_when_pointed_at_and_pressed(string mode) => TestApp.Run(() =>
     {
-        using var s = ComponentTests.Library();
+        using AppSetup s = ComponentTests.Library();
         s.Library.OnlyFrameGen = false;
-        var window = Stage.Show(new MainWindow(), mode, 1280, 820, s.Vm);
+        Window window = Stage.Show(new MainWindow(), mode, 1280, 820, s.Vm);
         var statusBar = new Point(640, 810);
 
         var buttons = window.GetVisualDescendants().OfType<Button>().Where(b => b.IsEffectivelyVisible && b.IsEffectivelyEnabled).ToList();
         Assert.True(buttons.Count > 8, $"only found {buttons.Count} buttons");
-        foreach (var button in buttons) AssertReadableWhilePointingAndPressing(window, button, statusBar, mode);
+        foreach (Button button in buttons) AssertReadableWhilePointingAndPressing(window, button, statusBar, mode);
 
-        Assert.Equal("Alpha Strike", s.Library.SelectedGame?.Name);   // pressing and letting go elsewhere didn't click anything
+        // Pressing and letting go elsewhere didn't click anything.
+        Assert.Equal("Alpha Strike", s.Library.SelectedGame?.Name);
         PointAt(window, buttons.Single(b => (b.Content as string) == "Install / Update"));
         Stage.Snapshot(window, "Point-accent", mode);
         window.Close();
@@ -81,13 +82,13 @@ public class StateTests
     [Theory, MemberData(nameof(Modes))]
     public Task Sidebar_items_stay_readable_when_pointed_at_and_pressed(string mode) => TestApp.Run(() =>
     {
-        using var s = ComponentTests.Library();
-        var window = Stage.Show(new Sidebar { DataContext = s.Vm }, mode, 248, 700);
+        using AppSetup s = ComponentTests.Library();
+        Window window = Stage.Show(new Sidebar { DataContext = s.Vm }, mode, 248, 700);
         var bottom = new Point(120, 480);
 
         var items = window.GetVisualDescendants().OfType<ListBoxItem>().ToList();
         Assert.True(items.Count > 6);
-        foreach (var item in items) AssertReadableWhilePointingAndPressing(window, item, bottom, mode);
+        foreach (ListBoxItem item in items) AssertReadableWhilePointingAndPressing(window, item, bottom, mode);
 
         PointAt(window, items[2]);
         Stage.Snapshot(window, "Point-sidebar", mode);
@@ -97,10 +98,10 @@ public class StateTests
     [Theory, MemberData(nameof(Modes))]
     public Task Cover_wall_shows_every_label_and_the_selected_card(string mode) => TestApp.Run(() =>
     {
-        using var s = ComponentTests.Library();
+        using AppSetup s = ComponentTests.Library();
         s.Library.OnlyFrameGen = false;
         s.Library.GroupBy = LibraryViewModel.NoGrouping;
-        var window = Stage.Show(new CoverWall { DataContext = s.Library }, mode, 1000, 720);
+        Window window = Stage.Show(new CoverWall { DataContext = s.Library }, mode, 1000, 720);
 
         var cards = window.GetVisualDescendants().OfType<GameCard>().ToList();
         Assert.Equal(6, cards.Count);
@@ -110,7 +111,7 @@ public class StateTests
         var firstRow = cards.Take(5).Select(c => c.GetVisualDescendants().OfType<Image>().Single().TranslatePoint(default, window)!.Value.Y).ToList();
         Assert.Single(firstRow.Distinct());
 
-        var other = cards.First(c => ((GameViewModel)c.DataContext!).Name == "Beta Run");
+        GameCard other = cards.First(c => ((GameViewModel)c.DataContext!).Name == "Beta Run");
         PointAt(window, other.GetVisualDescendants().OfType<Button>().Single());
         ReadabilityCheck.Assert_all_text_is_readable(window, $"pointing at a card in {mode} mode");
         Stage.Snapshot(window, "CoverWall-flat", mode);
@@ -120,21 +121,21 @@ public class StateTests
     [Theory, MemberData(nameof(Modes))]
     public Task Open_dropdown_is_readable(string mode) => TestApp.Run(() =>
     {
-        using var s = ComponentTests.Library();
-        var window = Stage.Show(new LibraryToolbar { DataContext = s.Vm }, mode, 660, 300);
-        var groupBy = window.GetVisualDescendants().OfType<ComboBox>().Single();
+        using AppSetup s = ComponentTests.Library();
+        Window window = Stage.Show(new LibraryToolbar { DataContext = s.Vm }, mode, 660, 300);
+        ComboBox groupBy = window.GetVisualDescendants().OfType<ComboBox>().Single();
 
         groupBy.IsDropDownOpen = true;
         Stage.Settle();
 
-        var popup = groupBy.GetVisualDescendants().OfType<Popup>().Single();
-        var list = TopLevel.GetTopLevel(popup.Child)!;
+        Popup popup = groupBy.GetVisualDescendants().OfType<Popup>().Single();
+        TopLevel list = TopLevel.GetTopLevel(popup.Child)!;
         var items = list.GetVisualDescendants().OfType<ComboBoxItem>().ToList();
         Assert.Equal(3, items.Count);
         ReadabilityCheck.Assert_all_text_is_readable(list, $"open dropdown in {mode} mode");
         Stage.Snapshot(list, "Dropdown", mode);
 
-        foreach (var item in items)
+        foreach (ComboBoxItem item in items)
         {
             PointAt(list, item);
             ReadabilityCheck.Assert_all_text_is_readable(list, $"pointing at {item.Content} in {mode} mode");
@@ -148,15 +149,15 @@ public class StateTests
     [Theory, MemberData(nameof(Modes))]
     public Task Theme_dropdown_is_readable_and_lists_all_three(string mode) => TestApp.Run(() =>
     {
-        using var s = ComponentTests.Library();
-        var window = Stage.Show(new ThemePicker { DataContext = s.Vm }, mode, 248, 300);
-        var picker = window.GetVisualDescendants().OfType<ComboBox>().Single();
+        using AppSetup s = ComponentTests.Library();
+        Window window = Stage.Show(new ThemePicker { DataContext = s.Vm }, mode, 248, 300);
+        ComboBox picker = window.GetVisualDescendants().OfType<ComboBox>().Single();
 
         picker.IsDropDownOpen = true;
         Stage.Settle();
 
-        var popup = picker.GetVisualDescendants().OfType<Popup>().Single();
-        var list = TopLevel.GetTopLevel(popup.Child)!;
+        Popup popup = picker.GetVisualDescendants().OfType<Popup>().Single();
+        TopLevel list = TopLevel.GetTopLevel(popup.Child)!;
         Assert.Equal(3, list.GetVisualDescendants().OfType<ComboBoxItem>().Count());
         ReadabilityCheck.Assert_all_text_is_readable(list, $"theme dropdown in {mode} mode");
 
@@ -167,17 +168,17 @@ public class StateTests
     [Theory, MemberData(nameof(Modes))]
     public Task Ticked_box_is_easy_to_see(string mode) => TestApp.Run(() =>
     {
-        using var s = ComponentTests.Library();
-        var window = Stage.Show(new LibraryToolbar { DataContext = s.Vm }, mode, 660, 120);
-        var box = window.GetVisualDescendants().OfType<CheckBox>().Single();
+        using AppSetup s = ComponentTests.Library();
+        Window window = Stage.Show(new LibraryToolbar { DataContext = s.Vm }, mode, 660, 120);
+        CheckBox box = window.GetVisualDescendants().OfType<CheckBox>().Single();
         box.IsChecked = true;
         Stage.Settle();
 
         void AssertTickStandsOut(string state)
         {
-            var tick = box.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Path>().Single(p => p.Name == "CheckGlyph");
-            var square = box.GetVisualDescendants().OfType<Border>().Single(b => b.Name == "NormalRectangle");
-            var ratio = Contrast.Ratio(((ISolidColorBrush)tick.Fill!).Color, ((ISolidColorBrush)square.Background!).Color);
+            Avalonia.Controls.Shapes.Path tick = box.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Path>().Single(p => p.Name == "CheckGlyph");
+            Border square = box.GetVisualDescendants().OfType<Border>().Single(b => b.Name == "NormalRectangle");
+            double ratio = Contrast.Ratio(((ISolidColorBrush)tick.Fill!).Color, ((ISolidColorBrush)square.Background!).Color);
             Assert.True(ratio >= Contrast.LargeText, $"the tick {state} is only {ratio:0.00}:1 in {mode} mode");
         }
 
@@ -194,9 +195,9 @@ public class StateTests
     [Theory, MemberData(nameof(Modes))]
     public Task Search_box_is_readable_when_typing_and_selecting(string mode) => TestApp.Run(() =>
     {
-        using var s = ComponentTests.Library();
-        var window = Stage.Show(new LibraryToolbar { DataContext = s.Vm }, mode, 660, 120);
-        var search = window.GetVisualDescendants().OfType<TextBox>().Single(box => box.PlaceholderText == "Search games");
+        using AppSetup s = ComponentTests.Library();
+        Window window = Stage.Show(new LibraryToolbar { DataContext = s.Vm }, mode, 660, 120);
+        TextBox search = window.GetVisualDescendants().OfType<TextBox>().Single(box => box.PlaceholderText == "Search games");
 
         PointAt(window, search);
         ReadabilityCheck.Assert_all_text_is_readable(window, $"pointing at search in {mode} mode");
@@ -208,9 +209,9 @@ public class StateTests
 
         search.SelectAll();
         Stage.Settle();
-        var background = ((ISolidColorBrush)search.SelectionBrush!).Color;
-        var foreground = ((ISolidColorBrush)(search.SelectionForegroundBrush ?? search.Foreground)!).Color;
-        var ratio = Contrast.Ratio(foreground, background);
+        Color background = ((ISolidColorBrush)search.SelectionBrush!).Color;
+        Color foreground = ((ISolidColorBrush)(search.SelectionForegroundBrush ?? search.Foreground)!).Color;
+        double ratio = Contrast.Ratio(foreground, background);
         Assert.True(ratio >= Contrast.NormalText, $"selected text {foreground} on {background} is only {ratio:0.00}:1 in {mode} mode");
         Stage.Snapshot(window, "Toolbar-selected-text", mode);
         window.Close();
@@ -220,7 +221,7 @@ public class StateTests
     public Task Tooltip_is_readable(string mode) => TestApp.Run(() =>
     {
         // A tooltip is fully see-through until it opens, so show this one as an open one looks.
-        var window = Stage.Show(new ToolTip { Content = @"E:\Games\Alpha Strike", Opacity = 1 }, mode, 300, 80);
+        Window window = Stage.Show(new ToolTip { Content = """E:\Games\Alpha Strike""", Opacity = 1 }, mode, 300, 80);
         ReadabilityCheck.Assert_all_text_is_readable(window, $"tooltip in {mode} mode");
         Stage.Snapshot(window, "Tooltip", mode);
         window.Close();
@@ -229,23 +230,23 @@ public class StateTests
     [Theory, MemberData(nameof(Modes))]
     public Task The_smallest_allowed_window_still_fits_everything(string mode) => TestApp.Run(() =>
     {
-        using var s = ComponentTests.Library();
+        using AppSetup s = ComponentTests.Library();
         s.Library.OnlyFrameGen = false;
         var main = new MainWindow();
-        var window = Stage.Show(main, mode, main.MinWidth, main.MinHeight, s.Vm);
+        Window window = Stage.Show(main, mode, main.MinWidth, main.MinHeight, s.Vm);
 
-        var detailsStart = window.GetVisualDescendants().OfType<DetailsPanel>().Single().TranslatePoint(default, window)!.Value.X;
-        var toolbar = window.GetVisualDescendants().OfType<LibraryToolbar>().Single();
-        foreach (var control in toolbar.GetVisualDescendants().OfType<Control>().Where(c => c.IsEffectivelyVisible && c is Button or ComboBox or CheckBox))
+        double detailsStart = window.GetVisualDescendants().OfType<DetailsPanel>().Single().TranslatePoint(default, window)!.Value.X;
+        LibraryToolbar toolbar = window.GetVisualDescendants().OfType<LibraryToolbar>().Single();
+        foreach (Control control in toolbar.GetVisualDescendants().OfType<Control>().Where(c => c.IsEffectivelyVisible && c is Button or ComboBox or CheckBox))
         {
-            var right = control.TranslatePoint(new Point(control.Bounds.Width, 0), window)!.Value.X;
+            double right = control.TranslatePoint(new Point(control.Bounds.Width, 0), window)!.Value.X;
             Assert.True(right <= detailsStart, $"{Describe(control)} is cut off: it ends at {right}, the details panel starts at {detailsStart}");
         }
-        var search = toolbar.GetVisualDescendants().OfType<TextBox>().Single(box => box.PlaceholderText == "Search games");
+        TextBox search = toolbar.GetVisualDescendants().OfType<TextBox>().Single(box => box.PlaceholderText == "Search games");
         Assert.True(search.Bounds.Width >= 150, $"the search box is squashed to {search.Bounds.Width}");
 
         // What doesn't fit has to be reachable by scrolling.
-        var openFolder = window.GetVisualDescendants().OfType<Button>().Single(b => (b.Content as string) == "Open folder");
+        Button openFolder = window.GetVisualDescendants().OfType<Button>().Single(b => (b.Content as string) == "Open folder");
         openFolder.BringIntoView();
         Stage.Settle();
         Assert.NotNull(ReachablePoint(window, openFolder));
@@ -258,11 +259,11 @@ public class StateTests
     [Fact]
     public void Long_paths_can_wrap_between_folders_but_look_the_same()
     {
-        var shown = (string)WrapPathConverter.Instance.Convert(@"E:\GOG\Cyberpunk 2077\bin\x64\Cyberpunk2077.exe", typeof(string), null, System.Globalization.CultureInfo.InvariantCulture)!;
-        Assert.Equal(@"E:\GOG\Cyberpunk 2077\bin\x64\Cyberpunk2077.exe", shown.Replace("\u200B", ""));
+        string shown = (string)WrapPathConverter.Instance.Convert("""E:\GOG\Cyberpunk 2077\bin\x64\Cyberpunk2077.exe""", typeof(string), null, System.Globalization.CultureInfo.InvariantCulture)!;
+        Assert.Equal("""E:\GOG\Cyberpunk 2077\bin\x64\Cyberpunk2077.exe""", shown.Replace("\u200B", ""));
         Assert.Equal(5, shown.Count(c => c == '\u200B'));
 
-        var linux = (string)WrapPathConverter.Instance.Convert("/home/me/game.exe", typeof(string), null, System.Globalization.CultureInfo.InvariantCulture)!;
+        string linux = (string)WrapPathConverter.Instance.Convert("/home/me/game.exe", typeof(string), null, System.Globalization.CultureInfo.InvariantCulture)!;
         Assert.Equal(3, linux.Count(c => c == '\u200B'));
 
         Assert.Equal("No game .exe found", WrapPathConverter.Instance.Convert("No game .exe found", typeof(string), null, System.Globalization.CultureInfo.InvariantCulture));

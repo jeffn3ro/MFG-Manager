@@ -17,8 +17,9 @@ public static class FolderPicker
     [CustomAction]
     public static ActionResult PickInstallFolder(Session session)
     {
-        var current = session["INSTALLFOLDER"];
-        var owner = FindWindow(null, session["ProductName"] + " Setup");   // so the picker sits on top of the setup window
+        string current = session["INSTALLFOLDER"];
+        // So the picker sits on top of the setup window.
+        IntPtr owner = FindWindow(null, session["ProductName"] + " Setup");
         string? picked = null;
 
         // The picker is a COM window, and those need an STA thread.
@@ -34,10 +35,10 @@ public static class FolderPicker
     /// <summary>"D:\Apps" becomes "D:\Apps\MFG Manager\", so the app gets a folder of its own, like other installers do.</summary>
     public static string InstallFolderFor(string picked)
     {
-        var folder = Path.GetFullPath(picked);
+        string folder = Path.GetFullPath(picked);
         if (!new DirectoryInfo(folder).Name.Equals(ProductFolderName, StringComparison.OrdinalIgnoreCase))
             folder = Path.Combine(folder, ProductFolderName);
-        return folder.TrimEnd('\\') + "\\";
+        return folder.TrimEnd('\\') + """\""";
     }
 
     /// <summary>Shows the picker. Returns the chosen folder, or null if you cancelled.</summary>
@@ -49,12 +50,13 @@ public static class FolderPicker
             dialog.SetOptions(FosPickFolders | FosForceFileSystem | FosPathMustExist);
             dialog.SetTitle("Choose where to install MFG Manager");
             // Start in the folder above the current choice (C:\Program Files), so the choice is easy to see.
-            if (ExistingParent(currentFolder) is { } start && SHCreateItemFromParsingName(start, IntPtr.Zero, typeof(IShellItem).GUID, out var item) == 0)
+            if (ExistingParent(currentFolder) is { } start && SHCreateItemFromParsingName(start, IntPtr.Zero, typeof(IShellItem).GUID, out IShellItem? item) == 0)
                 dialog.SetFolder(item);
 
-            if (dialog.Show(owner) != 0) return null;   // cancelled
-            dialog.GetResult(out var result);
-            result.GetDisplayName(SigdnFileSysPath, out var path);
+            // Cancelled.
+            if (dialog.Show(owner) != 0) return null;
+            dialog.GetResult(out IShellItem? result);
+            result.GetDisplayName(SigdnFileSysPath, out string? path);
             return path;
         }
         finally
@@ -65,7 +67,7 @@ public static class FolderPicker
 
     private static string? ExistingParent(string? folder)
     {
-        for (var dir = string.IsNullOrEmpty(folder) ? null : Directory.GetParent(folder!.TrimEnd('\\')); dir is not null; dir = dir.Parent)
+        for (DirectoryInfo? dir = string.IsNullOrEmpty(folder) ? null : Directory.GetParent(folder!.TrimEnd('\\')); dir is not null; dir = dir.Parent)
             if (dir.Exists) return dir.FullName;
         return null;
     }

@@ -11,6 +11,7 @@ namespace MfgManager.Tests.Core;
 public class PackagingTests
 {
     private static readonly string Root = FindRoot();
+    private static readonly string[] CodeFolders = ["src", "tests", "installer"];
 
     private static string FindRoot()
     {
@@ -31,7 +32,7 @@ public class PackagingTests
     [Theory, MemberData(nameof(LinuxFiles))]
     public void Linux_files_have_linux_line_endings(string file)
     {
-        var text = File.ReadAllText(Path.Combine(Root, file));
+        string text = File.ReadAllText(Path.Combine(Root, file));
         Assert.DoesNotContain("\r", text);
         Assert.EndsWith("\n", text);
     }
@@ -42,14 +43,14 @@ public class PackagingTests
     [InlineData("packaging/linux/uninstall.sh")]
     public void Scripts_stop_at_the_first_error_and_never_use_root_or_download_scripts(string file)
     {
-        var text = File.ReadAllText(Path.Combine(Root, file));
+        string text = File.ReadAllText(Path.Combine(Root, file));
         Assert.StartsWith("#!/usr/bin/env bash\n", text);
         Assert.Contains("set -euo pipefail", text);
 
         // "sudo" may only appear in the advice the script prints, never as something it runs itself.
-        var withoutPrintedText = Regex.Replace(text, @"<<'(\w+)'.*?^\1$", "", RegexOptions.Singleline | RegexOptions.Multiline);
+        string withoutPrintedText = Regex.Replace(text, """<<'(\w+)'.*?^\1$""", "", RegexOptions.Singleline | RegexOptions.Multiline);
         var lines = withoutPrintedText.Split('\n').Where(line => !line.TrimStart().StartsWith('#')).ToList();
-        Assert.DoesNotContain(lines, line => line.TrimStart().StartsWith("sudo "));
+        Assert.DoesNotContain(lines, line => line.TrimStart().StartsWith("sudo ", StringComparison.Ordinal));
         Assert.DoesNotContain(lines, line => line.Contains("curl ") || line.Contains("wget "));
     }
 
@@ -63,7 +64,7 @@ public class PackagingTests
     [Fact]
     public void Arch_package_has_the_same_version_as_the_app()
     {
-        var line = File.ReadAllLines(Linux("PKGBUILD")).Single(l => l.StartsWith("pkgver="));
+        string line = File.ReadAllLines(Linux("PKGBUILD")).Single(l => l.StartsWith("pkgver=", StringComparison.Ordinal));
         Assert.Equal(AppVersion, line["pkgver=".Length..]);
     }
 
@@ -77,12 +78,12 @@ public class PackagingTests
     [Fact]
     public void Debian_package_takes_its_version_from_the_build()
     {
-        var lines = File.ReadAllLines(Linux("deb-control"));
+        string[] lines = File.ReadAllLines(Linux("deb-control"));
         Assert.Contains("Version: @VERSION@", lines);
         Assert.Contains("Package: mfg-manager", lines);
         Assert.Contains("Architecture: amd64", lines);
-        Assert.Contains(lines, l => l.StartsWith("Depends: "));
-        Assert.Contains(lines, l => l.StartsWith("Description: "));
+        Assert.Contains(lines, l => l.StartsWith("Depends: ", StringComparison.Ordinal));
+        Assert.Contains(lines, l => l.StartsWith("Description: ", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -98,31 +99,33 @@ public class PackagingTests
         Assert.Equal("mfg-manager", entries["Icon"]);
         Assert.Equal("false", entries["Terminal"]);
         Assert.EndsWith(";", entries["Categories"]);
-        Assert.Equal("MfgManager", entries["StartupWMClass"]);   // lets the taskbar match the window to this entry
+        // Lets the taskbar match the window to this entry.
+        Assert.Equal("MfgManager", entries["StartupWMClass"]);
     }
 
     [Fact]
     public void Licence_notices_come_with_the_program_and_name_everything_built_in()
     {
-        var folder = Path.Combine(Root, "src", "MfgManager.App", "Licenses");
-        var notices = File.ReadAllText(Path.Combine(folder, "THIRD-PARTY-NOTICES.txt"));
-        foreach (var name in new[] { "Avalonia", "SkiaSharp", "HarfBuzzSharp", "Tmds.DBus.Protocol", "MicroCom.Runtime", "Inter font", "ANGLE", ".NET" })
+        string folder = Path.Combine(Root, "src", "MfgManager.App", "Licenses");
+        string notices = File.ReadAllText(Path.Combine(folder, "THIRD-PARTY-NOTICES.txt"));
+        foreach (string name in new[] { "Avalonia", "SkiaSharp", "HarfBuzzSharp", "Tmds.DBus.Protocol", "MicroCom.Runtime", "Inter font", "ANGLE", ".NET" })
             Assert.Contains(name, notices);
         Assert.Contains("Permission is hereby granted", notices);
         Assert.Contains("Redistribution and use in source and binary forms", notices);
         Assert.True(new FileInfo(Path.Combine(folder, "SkiaSharp-THIRD-PARTY-NOTICES.txt")).Length > 10_000);
 
-        Assert.Contains(@"Licenses\*.txt", File.ReadAllText(Path.Combine(Root, "src", "MfgManager.App", "MfgManager.App.csproj")));
+        Assert.Contains("""Licenses\*.txt""", File.ReadAllText(Path.Combine(Root, "src", "MfgManager.App", "MfgManager.App.csproj")));
     }
 
     [Fact]
     public void Windows_installer_checks_for_the_right_runtime_and_keeps_debug_files_out()
     {
-        var package = File.ReadAllText(Path.Combine(Root, "installer", "Package.wxs"));
-        Assert.Contains("RuntimeType=\"core\"", package);   // Avalonia doesn't need the Desktop Runtime that the old WPF app did
+        string package = File.ReadAllText(Path.Combine(Root, "installer", "Package.wxs"));
+        // Avalonia doesn't need the Desktop Runtime that the old WPF app did.
+        Assert.Contains("RuntimeType=\"core\"", package);
         Assert.DoesNotContain("RuntimeType=\"desktop\"", package);
 
-        var script = File.ReadAllText(Path.Combine(Root, "tools", "build-installer.ps1"));
+        string script = File.ReadAllText(Path.Combine(Root, "tools", "build-installer.ps1"));
         Assert.Contains("-r win-x64", script);
         Assert.Contains("-Filter *.pdb", script);
         Assert.Contains("AVALONIA_TELEMETRY_OPTOUT", script);
@@ -131,14 +134,14 @@ public class PackagingTests
     [Fact]
     public void The_app_asks_for_admin_rights_and_the_installer_refuses_a_program_that_doesnt()
     {
-        var manifest = File.ReadAllText(Path.Combine(Root, "src", "MfgManager.App", "app.manifest"));
+        string manifest = File.ReadAllText(Path.Combine(Root, "src", "MfgManager.App", "app.manifest"));
         Assert.Contains("level=\"requireAdministrator\"", manifest);
 
         // What the build really produced, not only what the project asks for.
-        var built = System.Text.Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "MfgManager.dll")));
+        string built = System.Text.Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "MfgManager.dll")));
         Assert.Contains("level=\"requireAdministrator\"", built);
 
-        var script = File.ReadAllText(Path.Combine(Root, "tools", "build-installer.ps1"));
+        string script = File.ReadAllText(Path.Combine(Root, "tools", "build-installer.ps1"));
         Assert.Contains("requireAdministrator", script);
         Assert.Contains("throw", script);
     }
@@ -146,12 +149,12 @@ public class PackagingTests
     [Fact]
     public void The_licence_is_MIT_and_comes_with_every_build()
     {
-        var licence = File.ReadAllText(Path.Combine(Root, "LICENSE"));
+        string licence = File.ReadAllText(Path.Combine(Root, "LICENSE"));
         Assert.StartsWith("MIT License", licence);
         Assert.Contains("Permission is hereby granted", licence);
 
-        Assert.Contains(@"..\..\LICENSE", File.ReadAllText(Path.Combine(Root, "src", "MfgManager.App", "MfgManager.App.csproj")));
-        var pkgbuild = File.ReadAllText(Linux("PKGBUILD"));
+        Assert.Contains("""..\..\LICENSE""", File.ReadAllText(Path.Combine(Root, "src", "MfgManager.App", "MfgManager.App.csproj")));
+        string pkgbuild = File.ReadAllText(Linux("PKGBUILD"));
         Assert.Contains("license=('MIT')", pkgbuild);
         Assert.Contains("usr/share/licenses", pkgbuild);
         Assert.Contains("usr/share/doc/mfg-manager/copyright", File.ReadAllText(Path.Combine(Root, "tools", "build-linux.sh")));
@@ -160,8 +163,8 @@ public class PackagingTests
     [Fact]
     public void The_readme_says_what_a_new_user_has_to_know()
     {
-        var readme = File.ReadAllText(Path.Combine(Root, "README.md"));
-        foreach (var warning in new[] { "Unofficial", "isn't affiliated", "get you banned", "isn't included", "admin rights", "isn't code-signed", "Linux is experimental", "MIT License" })
+        string readme = File.ReadAllText(Path.Combine(Root, "README.md"));
+        foreach (string warning in new[] { "Unofficial", "isn't affiliated", "get you banned", "isn't included", "admin rights", "isn't code-signed", "Linux is experimental", "MIT License" })
             Assert.Contains(warning, readme);
 
         Assert.True(File.Exists(Path.Combine(Root, "docs", "screenshot-dark.png")));
@@ -183,9 +186,9 @@ public class PackagingTests
     {
         var kinds = new HashSet<string> { ".cs", ".axaml", ".csproj", ".props", ".sln", ".md", ".ps1", ".sh", ".json", ".wxs", ".wxl", ".desktop", "" };
         var skipped = new HashSet<string> { "bin", "obj", "artifacts", ".idea", ".vs", ".git", "TestResults", "Licenses" };
-        var personal = new Regex(@"[A-Za-z]:[\\/]+Users[\\/]+[A-Za-z]");
+        var personal = new Regex("""[A-Za-z]:[\\/]+Users[\\/]+[A-Za-z]""");
 
-        var found = Directory.EnumerateFiles(Root, "*", SearchOption.AllDirectories)
+        IEnumerable<string> found = Directory.EnumerateFiles(Root, "*", SearchOption.AllDirectories)
             .Where(file => kinds.Contains(Path.GetExtension(file)) && !Path.GetRelativePath(Root, file).Split(Path.DirectorySeparatorChar).Any(skipped.Contains))
             .SelectMany(file => File.ReadLines(file).Where(line => personal.IsMatch(line)).Select(line => $"{Path.GetFileName(file)}: {line.Trim()}"));
 
@@ -195,12 +198,12 @@ public class PackagingTests
     [Fact]
     public void Release_builds_ignore_the_environment_variables_that_could_load_other_code()
     {
-        var project = File.ReadAllText(Path.Combine(Root, "src", "MfgManager.App", "MfgManager.App.csproj"));
+        string project = File.ReadAllText(Path.Combine(Root, "src", "MfgManager.App", "MfgManager.App.csproj"));
         Assert.Contains("<StartupHookSupport>false</StartupHookSupport>", project);
         Assert.Contains(">Global</AppHostDotNetSearch>", project);
 
-        var script = File.ReadAllText(Path.Combine(Root, "tools", "build-installer.ps1"));
-        Assert.Contains(@"System\.StartupHookProvider\.IsSupported", script);
+        string script = File.ReadAllText(Path.Combine(Root, "tools", "build-installer.ps1"));
+        Assert.Contains("""System\.StartupHookProvider\.IsSupported""", script);
     }
 
     [Theory]
@@ -208,25 +211,39 @@ public class PackagingTests
     [InlineData("installer/CustomActions/FolderPicker.cs")]
     public void Windows_calls_only_load_their_dlls_from_the_system_folder(string file)
     {
-        var text = File.ReadAllText(Path.Combine(Root, file));
+        string text = File.ReadAllText(Path.Combine(Root, file));
 
-        var calls = Regex.Matches(text, @"\[DllImport\(").Count;
+        int calls = Regex.Count(text, """\[(DllImport|LibraryImport)\(""");
         Assert.True(calls > 0);
-        Assert.Equal(calls, Regex.Matches(text, @"\[DefaultDllImportSearchPaths\(DllImportSearchPath\.System32\)\]").Count);
+        Assert.Equal(calls, Regex.Count(text, """\[DefaultDllImportSearchPaths\(DllImportSearchPath\.System32\)\]"""));
+    }
+
+    [Fact]
+    public void Every_class_has_its_own_file()
+    {
+        // A type nested inside a class is indented, so only top-level types start at the beginning of a line.
+        var topLevelType = new Regex("""^(?:(?:public|internal|sealed|static|abstract|partial|readonly|file)\s+)*(?:class|record|struct|interface|enum|delegate)\s""", RegexOptions.Multiline);
+        var counts = CodeFolders
+            .SelectMany(folder => Directory.EnumerateFiles(Path.Combine(Root, folder), "*.cs", SearchOption.AllDirectories))
+            .Where(file => !file.Split(Path.DirectorySeparatorChar).Any(part => part is "bin" or "obj"))
+            .ToDictionary(file => file, file => topLevelType.Count(File.ReadAllText(file)));
+
+        Assert.True(counts.Values.Sum() > 50, "the check found too few types, so it's probably not looking in the right place");
+        Assert.Empty(counts.Where(file => file.Value > 1).Select(file => file.Key));
     }
 
     [Fact]
     public void A_no_admin_test_build_cant_leave_its_result_behind_for_a_normal_build()
     {
         // A normal build right after one of these once reused it, and an installer shipped without admin rights.
-        var project = File.ReadAllText(Path.Combine(Root, "src", "MfgManager.App", "MfgManager.App.csproj"));
+        string project = File.ReadAllText(Path.Combine(Root, "src", "MfgManager.App", "MfgManager.App.csproj"));
         Assert.Contains("NO_ADMIN_MANIFEST", project);
     }
 
     [Fact]
     public void Linux_build_uses_no_secrets_and_keeps_telemetry_off()
     {
-        var script = File.ReadAllText(Path.Combine(Root, "tools", "build-linux.sh"));
+        string script = File.ReadAllText(Path.Combine(Root, "tools", "build-linux.sh"));
         Assert.Contains("AVALONIA_TELEMETRY_OPTOUT=1", script);
         Assert.Contains("DOTNET_CLI_TELEMETRY_OPTOUT=1", script);
         Assert.DoesNotContain("TOKEN", script);

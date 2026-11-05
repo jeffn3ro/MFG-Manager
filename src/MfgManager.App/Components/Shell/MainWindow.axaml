@@ -27,7 +27,7 @@
 
     <DockPanel Grid.Row="0" Grid.Column="1">
       <toolbar:LibraryToolbar DockPanel.Dock="Top" Margin="16,14,16,8" />
-      <banners:BannerStack DockPanel.Dock="Top" Margin="16,0,16,8" />
+      <banners:BannerList DockPanel.Dock="Top" Margin="16,0,16,8" />
       <library:CoverWall DataContext="{Binding Library}" />
     </DockPanel>
 

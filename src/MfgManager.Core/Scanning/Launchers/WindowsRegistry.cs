@@ -9,13 +9,13 @@ internal static class WindowsRegistry
     {
         if (!OperatingSystem.IsWindows()) return [];
 
-        using var root = Registry.LocalMachine.OpenSubKey(keyPath);
+        using RegistryKey? root = Registry.LocalMachine.OpenSubKey(keyPath);
         if (root is null) return [];
 
         var values = new List<string>();
-        foreach (var name in root.GetSubKeyNames())
+        foreach (string name in root.GetSubKeyNames())
         {
-            using var key = root.OpenSubKey(name);
+            using RegistryKey? key = root.OpenSubKey(name);
             if (key?.GetValue(valueName) is string value && value.Length > 0) values.Add(value);
         }
         return values;

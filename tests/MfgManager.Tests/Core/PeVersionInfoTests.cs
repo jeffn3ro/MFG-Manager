@@ -5,6 +5,8 @@ namespace MfgManager.Tests.Core;
 
 public class PeVersionInfoTests
 {
+    private static readonly string[] SystemFiles = ["kernel32.dll", "user32.dll", "notepad.exe", "shell32.dll", "version.dll", "winmm.dll", "dxgi.dll", "d3d12.dll"];
+
     private static PeVersionInfo? Read(byte[] file) => PeVersionInfo.Read(new MemoryStream(file));
 
     [Theory]
@@ -12,7 +14,7 @@ public class PeVersionInfoTests
     [InlineData(false)]
     public void Reads_product_name_and_version_from_32_and_64_bit_files(bool is64Bit)
     {
-        var info = Read(FakePe.Build("MFG Unlocker", "1.7.0", is64Bit));
+        PeVersionInfo? info = Read(FakePe.Build("MFG Unlocker", "1.7.0", is64Bit));
 
         Assert.Equal("MFG Unlocker", info?.ProductName);
         Assert.Equal("1.7.0", info?.ProductVersion);
@@ -22,8 +24,8 @@ public class PeVersionInfoTests
     public void Recognises_the_mod_by_its_name_and_nothing_else()
     {
         using var temp = new TempFolder();
-        var mod = Path.Combine(temp.Path, "mod.dll");
-        var other = Path.Combine(temp.Path, "other.dll");
+        string mod = Path.Combine(temp.Path, "mod.dll");
+        string other = Path.Combine(temp.Path, "other.dll");
         File.WriteAllBytes(mod, FakePe.Build(ModPackage.ProductName, "1.8.2"));
         File.WriteAllBytes(other, FakePe.Build("Some Game", "1.8.2"));
 
@@ -44,10 +46,11 @@ public class PeVersionInfoTests
     [Fact]
     public void A_cut_off_file_gives_null_at_every_length_and_never_crashes()
     {
-        var whole = FakePe.Build("MFG Unlocker", "1.7.0");
-        for (var length = 0; length < whole.Length; length++)
+        byte[] whole = FakePe.Build("MFG Unlocker", "1.7.0");
+        for (int length = 0; length < whole.Length; length++)
         {
-            var info = Read(whole[..length]);   // must return, whatever the length
+            // Must return, whatever the length.
+            PeVersionInfo? info = Read(whole[..length]);
             Assert.True(info is null || info.ProductName is null or "MFG Unlocker");
         }
     }
@@ -56,22 +59,24 @@ public class PeVersionInfoTests
     public void Damaged_files_never_crash_or_hang_the_reader()
     {
         // The file comes from a game folder or Downloads, so it could hold anything.
-        var whole = FakePe.Build("MFG Unlocker", "1.7.0");
-        var random = new Random(12345);   // fixed seed: same test every run
-        for (var round = 0; round < 3000; round++)
+        byte[] whole = FakePe.Build("MFG Unlocker", "1.7.0");
+        // Fixed seed: same test every run.
+        var random = new Random(12345);
+        for (int round = 0; round < 3000; round++)
         {
-            var damaged = (byte[])whole.Clone();
-            for (var change = 0; change < 1 + round % 8; change++)
+            byte[] damaged = (byte[])whole.Clone();
+            for (int change = 0; change < 1 + round % 8; change++)
                 damaged[random.Next(damaged.Length)] = (byte)random.Next(256);
 
-            Read(damaged);   // the test is that this returns
+            // The test is that this returns.
+            Read(damaged);
         }
     }
 
     [Fact]
     public void Huge_offsets_are_rejected()
     {
-        var file = FakePe.Build("MFG Unlocker", "1.7.0");
+        byte[] file = FakePe.Build("MFG Unlocker", "1.7.0");
         file[0x3C] = 0xFF; file[0x3D] = 0xFF; file[0x3E] = 0xFF; file[0x3F] = 0x7F;
 
         Assert.Null(Read(file));
@@ -82,13 +87,13 @@ public class PeVersionInfoTests
     {
         if (!OperatingSystem.IsWindows()) return;
 
-        var files = new[] { "kernel32.dll", "user32.dll", "notepad.exe", "shell32.dll", "version.dll", "winmm.dll", "dxgi.dll", "d3d12.dll" }
+        var files = SystemFiles
             .Select(name => Path.Combine(Environment.SystemDirectory, name))
             .Where(File.Exists)
             .ToList();
         Assert.NotEmpty(files);
 
-        foreach (var file in files)
+        foreach (string file in files)
         {
             var expected = FileVersionInfo.GetVersionInfo(file);
             var actual = PeVersionInfo.Read(file);
@@ -105,8 +110,8 @@ public class PeVersionInfoTests
     public void Reads_the_real_mod_if_it_is_on_this_PC()
     {
         // Only reads the version info stored in the file. Nothing is loaded or run.
-        var mods = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "MFG Manager", "Mods");
-        var real = Directory.Exists(mods)
+        string mods = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "MFG Manager", "Mods");
+        string? real = Directory.Exists(mods)
             ? Directory.EnumerateFiles(mods, ModPackage.FileName, SearchOption.AllDirectories).FirstOrDefault()
             : null;
         if (real is null) Assert.Skip("MFG Unlocker isn't installed on this PC.");

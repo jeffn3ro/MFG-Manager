@@ -1,4 +1,3 @@
-using MfgManager.App.Services;
 using MfgManager.App.ViewModels;
 using MfgManager.Core.Mod;
 using MfgManager.Core.Models;
@@ -8,20 +7,6 @@ using MfgManager.Core.Store;
 using MfgManager.Tests.Core;
 
 namespace MfgManager.Tests.ViewModels;
-
-/// <summary>Answers every question with <see cref="Answer"/> and remembers what was asked.</summary>
-public sealed class FakeDialogs : IDialogs
-{
-    public bool Answer { get; set; } = true;
-    public string? PickedFile { get; set; }   // what "Open file" returns (null = Cancel)
-    public List<string> Messages { get; } = [];
-    public string? Copied { get; private set; }
-
-    public Task<bool> ConfirmAsync(string message, bool warning = false) { Messages.Add(message); return Task.FromResult(Answer); }
-    public Task ShowAsync(string message, bool error = false) { Messages.Add(message); return Task.CompletedTask; }
-    public Task<string?> PickFileAsync(string title, string typeName, string pattern, string? startFolder = null) => Task.FromResult(PickedFile);
-    public Task CopyTextAsync(string text) { Copied = text; return Task.CompletedTask; }
-}
 
 /// <summary>The whole app's logic, with fake dialogs, a fake web and fake game folders. Nothing real is touched.</summary>
 public sealed class AppSetup : IDisposable
@@ -52,7 +37,7 @@ public sealed class AppSetup : IDisposable
         }
         Vm = new MainViewModel(Settings, Save, new GameScanner(Settings, [CountingLauncher]), installer,
             new SteamStore(Web.Client(), Temp.Folder("cache")), new UpdateChecker(Web.Client(), FakeMod.ReadVersion),
-            Dialogs, new ThemeService(), ModsFolder, DownloadsFolder, exe => RunningExes.Contains(exe));
+            Dialogs, ModsFolder, DownloadsFolder, exe => RunningExes.Contains(exe));
         Vm.Mod.Mod = FakeMod.Create(Temp, "1.7.0");
     }
 
@@ -61,7 +46,7 @@ public sealed class AppSetup : IDisposable
 
     public GameViewModel AddGame(string name, Launcher launcher, bool frameGen = true, string? antiCheat = null, params string[] drm)
     {
-        var game = MakeGame(name, launcher, frameGen, antiCheat, drm);
+        Game game = MakeGame(name, launcher, frameGen, antiCheat, drm);
         var vm = new GameViewModel(game, select => Library.SelectedGame = select);
         Library.Games.Add(vm);
         Library.RefreshStatuses();
@@ -71,7 +56,7 @@ public sealed class AppSetup : IDisposable
 
     public Game MakeGame(string name, Launcher launcher, bool frameGen = true, string? antiCheat = null, params string[] drm)
     {
-        var exe = Temp.File($"games/{name}/{name}.exe", "game");
+        string exe = Temp.File($"games/{name}/{name}.exe", "game");
         var game = new Game { Name = name, Launcher = launcher, Folder = Path.GetDirectoryName(exe)!, Exe = exe, HasFrameGen = frameGen, AntiCheat = antiCheat };
         game.Drm.AddRange(drm);
         return game;
@@ -80,12 +65,12 @@ public sealed class AppSetup : IDisposable
     /// <summary>Writes a file the real reader recognises as the mod, unlike <see cref="FakeMod"/>.</summary>
     public string WriteRealLookingMod(string folder, string version)
     {
-        var path = Temp.File(Path.Combine(folder, ModPackage.FileName));
+        string path = Temp.File(Path.Combine(folder, ModPackage.FileName));
         File.WriteAllBytes(path, FakePe.Build(ModPackage.ProductName, version));
         return path;
     }
 
-    public List<string> Shown() => Library.View.Items.Select(g => g.Name).ToList();
+    public List<string> Shown() => [.. Library.View.Items.Select(g => g.Name)];
 
     public void Dispose() => Temp.Dispose();
 }

@@ -14,7 +14,7 @@ public static class EpicLibrary
     {
         if (!Directory.Exists(manifestsFolder)) yield break;
 
-        foreach (var file in Directory.EnumerateFiles(manifestsFolder, "*.item"))
+        foreach (string file in Directory.EnumerateFiles(manifestsFolder, "*.item"))
         {
             EpicManifest? manifest;
             try { manifest = JsonSerializer.Deserialize<EpicManifest>(File.ReadAllText(file)); }

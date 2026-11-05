@@ -1,5 +1,6 @@
 using System.Globalization;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
@@ -22,7 +23,7 @@ public class DocsScreenshots
 {
     public static TheoryData<string> Modes => Stage.Modes;
 
-    private const string Root = @"C:\Demo Games";
+    private const string Root = """C:\Demo Games""";
 
     private static readonly (string Name, Launcher Launcher, string From, string To, string Drm, string? AntiCheat, string? ModVersion)[] Games =
     [
@@ -36,9 +37,9 @@ public class DocsScreenshots
 
     private static string MakeCover(string name, string from, string to)
     {
-        var path = Path.Combine(Root, $"{name}.png");
+        string path = Path.Combine(Root, $"{name}.png");
         using var bitmap = new RenderTargetBitmap(new PixelSize(340, 510));
-        using (var context = bitmap.CreateDrawingContext())
+        using (DrawingContext context = bitmap.CreateDrawingContext())
         {
             var background = new LinearGradientBrush
             {
@@ -49,7 +50,8 @@ public class DocsScreenshots
             context.FillRectangle(background, new Rect(0, 0, 340, 510));
 
             var title = new FormattedText(name.ToUpperInvariant(), CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
-                new Typeface(new FontFamily("fonts:Inter#Inter"), weight: FontWeight.Bold), 36, Brushes.White) { MaxTextWidth = 296 };
+                new Typeface(new FontFamily("fonts:Inter#Inter"), weight: FontWeight.Bold), 36, Brushes.White)
+            { MaxTextWidth = 296 };
             context.DrawText(title, new Point(22, 510 - 30 - title.Height));
         }
         bitmap.Save(path, PngBitmapEncoderOptions.Default);
@@ -59,7 +61,7 @@ public class DocsScreenshots
     [Theory, MemberData(nameof(Modes))]
     public Task Draw_the_pictures_for_the_docs(string mode) => TestApp.Run(() =>
     {
-        var docs = Environment.GetEnvironmentVariable("MFG_DOCS");
+        string? docs = Environment.GetEnvironmentVariable("MFG_DOCS");
         Assert.SkipWhen(docs is null, "Set MFG_DOCS to the docs folder to draw the pictures");
         Assert.SkipUnless(OperatingSystem.IsWindows(), "The neutral paths on screen are Windows paths");
 
@@ -69,10 +71,10 @@ public class DocsScreenshots
         {
             s.Vm.Mod.Mod = new ModPackage(Path.Combine(Root, "Mods", "MFGUnlocker-v1.7.0", ModPackage.FileName), new Version(1, 7, 0));
 
-            foreach (var demo in Games)
+            foreach ((string Name, Launcher Launcher, string From, string To, string Drm, string? AntiCheat, string? ModVersion) demo in Games)
             {
-                var folder = Directory.CreateDirectory(Path.Combine(Root, demo.Name)).FullName;
-                var exe = Path.Combine(folder, $"{demo.Name}.exe");
+                string folder = Directory.CreateDirectory(Path.Combine(Root, demo.Name)).FullName;
+                string exe = Path.Combine(folder, $"{demo.Name}.exe");
                 File.WriteAllText(exe, "demo");
 
                 var game = new Game { Name = demo.Name, Launcher = demo.Launcher, Folder = folder, Exe = exe, HasFrameGen = true, AntiCheat = demo.AntiCheat };
@@ -94,9 +96,9 @@ public class DocsScreenshots
             s.Library.SelectedGame = s.Library.Games.First();
             s.Vm.Status.Text = $"Found {Games.Length} games, {Games.Length} with DLSS Frame Generation.";
 
-            var window = Stage.Show(new MainWindow(), mode, 1280, 820, s.Vm);
+            Window window = Stage.Show(new MainWindow(), mode, 1280, 820, s.Vm);
             Stage.Settle();
-            using (var frame = window.CaptureRenderedFrame())
+            using (WriteableBitmap? frame = window.CaptureRenderedFrame())
                 frame!.Save(Path.Combine(docs!, $"screenshot-{mode.ToLowerInvariant()}.png"), PngBitmapEncoderOptions.Default);
             window.Close();
         }

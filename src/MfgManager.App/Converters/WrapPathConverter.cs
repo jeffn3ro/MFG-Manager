@@ -14,7 +14,7 @@ public sealed class WrapPathConverter : IValueConverter
     private const string ZeroWidthSpace = "​";
 
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
-        value is string path ? path.Replace("\\", "\\" + ZeroWidthSpace).Replace("/", "/" + ZeroWidthSpace) : value;
+        value is string path ? path.Replace("""\""", """\""" + ZeroWidthSpace).Replace("/", "/" + ZeroWidthSpace) : value;
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
 }

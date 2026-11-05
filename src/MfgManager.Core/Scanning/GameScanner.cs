@@ -12,15 +12,16 @@ public sealed class GameScanner(AppSettings settings, IReadOnlyList<Func<IEnumer
     public IReadOnlyList<Game> Scan(IProgress<string>? progress = null)
     {
         var games = FindAllGames()
-            .GroupBy(g => g.Folder, PathUtil.Comparer)   // same folder found twice -> keep one
+            // Same folder found twice -> keep one.
+            .GroupBy(g => g.Folder, PathUtil.Comparer)
             .Select(group => group.First())
             .ToList();
 
-        for (var i = 0; i < games.Count; i++)
+        for (int i = 0; i < games.Count; i++)
         {
-            var game = games[i];
+            Game game = games[i];
             progress?.Report($"Checking {i + 1} of {games.Count}: {game.Name}");
-            settings.ExeOverrides.TryGetValue(game.Folder, out var exeOverride);
+            settings.ExeOverrides.TryGetValue(game.Folder, out string? exeOverride);
             GameInspector.Inspect(game, exeOverride);
         }
         return games;
@@ -35,12 +36,12 @@ public sealed class GameScanner(AppSettings settings, IReadOnlyList<Func<IEnumer
             () => settings.ManualGames.Where(File.Exists).Select(ManualGame),
         };
 
-        foreach (var source in sources)
+        foreach (Func<IEnumerable<Game>> source in sources)
         {
             List<Game> found;
-            try { found = source().ToList(); }
+            try { found = [.. source()]; }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException) { continue; }
-            foreach (var game in found) yield return game;
+            foreach (Game game in found) yield return game;
         }
     }
 
@@ -51,15 +52,17 @@ public sealed class GameScanner(AppSettings settings, IReadOnlyList<Func<IEnumer
         () => EpicLibrary.FindGames(EpicLibrary.DefaultManifestsFolder),
         () => GogLibrary.FindGames(GogLibrary.ReadEntries()),
         () => XboxLibrary.FindGames(XboxLibrary.FixedDriveRoots()),
-        () => UninstallLibrary.FindGames(UninstallLibrary.ReadEntries()),   // Battle.net, EA app, Rockstar
-        () => HeroicLibrary.FindGames(HeroicLibrary.DefaultConfigFolders()),   // Epic and GOG on Linux
+        // Battle.net, EA app, Rockstar.
+        () => UninstallLibrary.FindGames(UninstallLibrary.ReadEntries()),
+        // Epic and GOG on Linux.
+        () => HeroicLibrary.FindGames(HeroicLibrary.DefaultConfigFolders()),
     ];
 
     /// <summary>A game the user added by picking its .exe.</summary>
     public static Game ManualGame(string exePath)
     {
-        var folder = PathUtil.Normalize(Path.GetDirectoryName(exePath)!);
-        var productName = PeVersionInfo.Read(exePath)?.ProductName;
+        string folder = PathUtil.Normalize(Path.GetDirectoryName(exePath)!);
+        string? productName = PeVersionInfo.Read(exePath)?.ProductName;
         return new Game
         {
             Name = string.IsNullOrWhiteSpace(productName) ? Path.GetFileNameWithoutExtension(exePath) : productName,

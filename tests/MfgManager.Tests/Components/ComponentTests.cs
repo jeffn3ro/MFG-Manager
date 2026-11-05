@@ -2,7 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
-using Avalonia.Threading;
+using Avalonia.Media;
 using Avalonia.VisualTree;
 using MfgManager.App.Components.Banners;
 using MfgManager.App.Components.Details;
@@ -32,16 +32,17 @@ public class ComponentTests
     internal static AppSetup Library()
     {
         var s = new AppSetup();
-        var installed = s.AddGame("Alpha Strike", Launcher.Steam, drm: ["Steamworks", "Denuvo"]);
+        GameViewModel installed = s.AddGame("Alpha Strike", Launcher.Steam, drm: ["Steamworks", "Denuvo"]);
         s.AddGame("Beta Run", Launcher.Ubisoft, drm: "Ubisoft Connect");
-        var cheat = s.AddGame("Cheat Hunter", Launcher.Steam, antiCheat: "Easy Anti-Cheat");
-        var outdated = s.AddGame("Delta Force Reloaded With A Very Long Name That Wraps", Launcher.Gog);
+        GameViewModel cheat = s.AddGame("Cheat Hunter", Launcher.Steam, antiCheat: "Easy Anti-Cheat");
+        GameViewModel outdated = s.AddGame("Delta Force Reloaded With A Very Long Name That Wraps", Launcher.Gog);
         s.AddGame("Epsilon", Launcher.Ea);
-        var missing = s.AddGame("Zeta", Launcher.Epic);
+        GameViewModel missing = s.AddGame("Zeta", Launcher.Epic);
 
         var installer = new ModInstaller(s.Settings, () => { }, s.Temp.Folder("removed2"), FakeMod.ReadVersion);
-        foreach (var game in new[] { installed, cheat, outdated, missing }) installer.Install(game.Game, s.Vm.Mod.Mod!);
-        File.Delete(Path.Combine(missing.Game.ExeFolder!, "version.dll"));      // "Check"
+        foreach (GameViewModel game in new[] { installed, cheat, outdated, missing }) installer.Install(game.Game, s.Vm.Mod.Mod!);
+        // "Check".
+        File.Delete(Path.Combine(missing.Game.ExeFolder!, "version.dll"));
 
         // An older copy in one game, so it shows "Update".
         File.WriteAllText(Path.Combine(outdated.Game.ExeFolder!, "version.dll"), "MOD 1.6.0");
@@ -61,15 +62,15 @@ public class ComponentTests
     }
 
     private static List<string> Texts(Window window) =>
-        window.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible).Select(t => t.Text ?? "").ToList();
+        [.. window.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible).Select(t => t.Text ?? "")];
 
     [Theory, MemberData(nameof(Modes))]
     public Task Sidebar_lists_launchers_and_drm_with_counts(string mode) => TestApp.Run(() =>
     {
-        using var s = Library();
-        var window = Stage.Show(new Sidebar { DataContext = s.Vm }, mode, 248, 700);
+        using AppSetup s = Library();
+        Window window = Stage.Show(new Sidebar { DataContext = s.Vm }, mode, 248, 700);
 
-        var texts = Texts(window);
+        List<string> texts = Texts(window);
         Assert.Contains("LIBRARY", texts);
         Assert.Contains("DRM", texts);
         Assert.Contains("Steam", texts);
@@ -82,8 +83,8 @@ public class ComponentTests
     [Theory, MemberData(nameof(Modes))]
     public Task Clicking_a_launcher_in_the_sidebar_filters_the_games(string mode) => TestApp.Run(() =>
     {
-        using var s = Library();
-        var window = Stage.Show(new Sidebar { DataContext = s.Vm }, mode, 248, 700);
+        using AppSetup s = Library();
+        Window window = Stage.Show(new Sidebar { DataContext = s.Vm }, mode, 248, 700);
 
         var lists = window.GetVisualDescendants().OfType<ListBox>().ToList();
         lists[0].SelectedItem = s.Library.LauncherOptions.Single(o => o.Name == "Ubisoft");
@@ -98,21 +99,21 @@ public class ComponentTests
     [Theory, MemberData(nameof(Modes))]
     public Task Toolbar_controls_reach_the_library(string mode) => TestApp.Run(() =>
     {
-        using var s = Library();
-        var window = Stage.Show(new LibraryToolbar { DataContext = s.Vm }, mode, 660, 120);
+        using AppSetup s = Library();
+        Window window = Stage.Show(new LibraryToolbar { DataContext = s.Vm }, mode, 660, 120);
 
-        var search = window.GetVisualDescendants().OfType<TextBox>().Single(box => box.PlaceholderText == "Search games");
+        TextBox search = window.GetVisualDescendants().OfType<TextBox>().Single(box => box.PlaceholderText == "Search games");
         search.Text = "beta";
         Stage.Settle();
         Assert.Equal(["Beta Run"], s.Shown());
         search.Text = "";
 
-        var onlyFrameGen = window.GetVisualDescendants().OfType<CheckBox>().Single();
+        CheckBox onlyFrameGen = window.GetVisualDescendants().OfType<CheckBox>().Single();
         onlyFrameGen.IsChecked = false;
         Stage.Settle();
         Assert.False(s.Library.OnlyFrameGen);
 
-        var groupBy = window.GetVisualDescendants().OfType<ComboBox>().Single();
+        ComboBox groupBy = window.GetVisualDescendants().OfType<ComboBox>().Single();
         groupBy.SelectedItem = LibraryViewModel.GroupByDrm;
         Stage.Settle();
         Assert.Equal(LibraryViewModel.GroupByDrm, s.Library.GroupBy);
@@ -125,7 +126,7 @@ public class ComponentTests
     public Task Search_box_placeholder_is_readable(string mode) => TestApp.Run(() =>
     {
         using var s = new AppSetup();
-        var window = Stage.Show(new LibraryToolbar { DataContext = s.Vm }, mode, 660, 120);
+        Window window = Stage.Show(new LibraryToolbar { DataContext = s.Vm }, mode, 660, 120);
 
         Assert.Contains("Search games", Texts(window));
         CheckAndSnap(window, "Toolbar-empty", mode);
@@ -136,8 +137,9 @@ public class ComponentTests
     public Task Banners_appear_only_when_they_matter(string mode) => TestApp.Run(async () =>
     {
         using var s = new AppSetup();
-        var window = Stage.Show(new BannerStack { DataContext = s.Vm }, mode, 660, 200);
-        Assert.Empty(Texts(window));   // nothing to say
+        Window window = Stage.Show(new BannerList { DataContext = s.Vm }, mode, 660, 200);
+        // Nothing to say.
+        Assert.Empty(Texts(window));
 
         s.Web.Add("https://api.github.com/", """{"tag_name":"v1.8.0","html_url":"https://github.com/x","assets":[]}""");
         await s.Vm.Mod.CheckGitHubOnceAsync();
@@ -145,14 +147,15 @@ public class ComponentTests
         await s.Actions.InstallCommand.ExecuteAsync();
         Stage.Settle();
 
-        var texts = Texts(window);
+        List<string> texts = Texts(window);
         Assert.Contains("MFG Unlocker v1.8.0 is out (you have v1.7.0).", texts);
-        Assert.DoesNotContain(texts, t => t.Contains("anti-cheat"));   // the question before installing is warning enough
+        // The question before installing is warning enough.
+        Assert.DoesNotContain(texts, t => t.Contains("anti-cheat"));
         CheckAndSnap(window, "Banners", mode);
 
         s.Vm.Mod.Mod = null;
         Stage.Settle();
-        Assert.Contains(Texts(window), t => t.StartsWith("No MFGUnlocker.dll"));
+        Assert.Contains(Texts(window), t => t.StartsWith("No MFGUnlocker.dll", StringComparison.Ordinal));
         CheckAndSnap(window, "Banners-missing", mode);
         window.Close();
     });
@@ -160,16 +163,17 @@ public class ComponentTests
     [Theory, MemberData(nameof(Modes))]
     public Task Cover_wall_shows_groups_and_cards_with_labels(string mode) => TestApp.Run(() =>
     {
-        using var s = Library();
+        using AppSetup s = Library();
         s.Library.OnlyFrameGen = false;
-        var window = Stage.Show(new CoverWall { DataContext = s.Library }, mode, 660, 700);
+        Window window = Stage.Show(new CoverWall { DataContext = s.Library }, mode, 660, 700);
 
         var texts = window.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible).ToList();
         Assert.Equal(6, window.GetVisualDescendants().OfType<GameCard>().Count());
         Assert.Contains(texts, t => t.Text == "Installed");
         Assert.Contains(texts, t => t.Text == "Update");
         Assert.Contains(texts, t => t.Text == "Anti-cheat");
-        Assert.Contains(texts, t => t.Text == "AS");   // initials, because there's no cover
+        // Initials, because there's no cover.
+        Assert.Contains(texts, t => t.Text == "AS");
         CheckAndSnap(window, "CoverWall", mode);
         window.Close();
     });
@@ -177,8 +181,8 @@ public class ComponentTests
     [Fact]
     public Task Group_headings_show_name_and_count_and_vanish_without_grouping() => TestApp.Run(() =>
     {
-        using var s = Library();
-        var window = Stage.Show(new CoverWall { DataContext = s.Library }, "Dark", 660, 700);
+        using AppSetup s = Library();
+        Window window = Stage.Show(new CoverWall { DataContext = s.Library }, "Dark", 660, 700);
 
         string Headings() => string.Join("|", window.GetVisualDescendants().OfType<TextBlock>()
             .Where(t => t.IsEffectivelyVisible && t.Classes.Contains("heading"))
@@ -196,12 +200,13 @@ public class ComponentTests
     [Fact]
     public Task A_real_mouse_click_on_a_card_selects_the_game() => TestApp.Run(() =>
     {
-        using var s = Library();
-        var window = Stage.Show(new CoverWall { DataContext = s.Library }, "Dark", 660, 700);
+        using AppSetup s = Library();
+        Window window = Stage.Show(new CoverWall { DataContext = s.Library }, "Dark", 660, 700);
         var cards = window.GetVisualDescendants().OfType<GameCard>().ToList();
-        var target = cards.First(c => ((GameViewModel)c.DataContext!).Name == "Epsilon");   // its group is at the top, so it's on screen
+        // Its group is at the top, so it's on screen.
+        GameCard target = cards.First(c => ((GameViewModel)c.DataContext!).Name == "Epsilon");
 
-        var point = target.TranslatePoint(new Avalonia.Point(40, 40), window)!.Value;
+        Point point = target.TranslatePoint(new Avalonia.Point(40, 40), window)!.Value;
         window.MouseMove(point);
         window.MouseDown(point, MouseButton.Left);
         window.MouseUp(point, MouseButton.Left);
@@ -215,9 +220,9 @@ public class ComponentTests
     public Task Empty_library_says_what_to_do(string mode) => TestApp.Run(() =>
     {
         using var s = new AppSetup();
-        var window = Stage.Show(new CoverWall { DataContext = s.Library }, mode, 660, 300);
+        Window window = Stage.Show(new CoverWall { DataContext = s.Library }, mode, 660, 300);
 
-        Assert.Contains(Texts(window), t => t.StartsWith("No games to show"));
+        Assert.Contains(Texts(window), t => t.StartsWith("No games to show", StringComparison.Ordinal));
         CheckAndSnap(window, "CoverWall-empty", mode);
         window.Close();
     });
@@ -225,10 +230,10 @@ public class ComponentTests
     [Theory, MemberData(nameof(Modes))]
     public Task Details_panel_shows_everything_about_the_game(string mode) => TestApp.Run(() =>
     {
-        using var s = Library();
-        var window = Stage.Show(new DetailsPanel { DataContext = s.Actions }, mode, 372, 800);
+        using AppSetup s = Library();
+        Window window = Stage.Show(new DetailsPanel { DataContext = s.Actions }, mode, 372, 800);
 
-        var texts = Texts(window);
+        List<string> texts = Texts(window);
         Assert.Contains("Alpha Strike", texts);
         Assert.Contains("Steam", texts);
         Assert.Contains("Yes (DLSS Frame Generation found)", texts);
@@ -236,7 +241,8 @@ public class ComponentTests
         Assert.Contains("Steamworks", texts);
         Assert.Contains("Steam store says: Denuvo Anti-tamper. 5 a day machine activation limit", texts);
         Assert.Contains("Installed as version.dll (v1.7.0)", texts);
-        Assert.Contains(s.Library.SelectedGame!.ExeText, texts.Select(t => t.Replace("​", "")));   // it can wrap between folders
+        // It can wrap between folders.
+        Assert.Contains(s.Library.SelectedGame!.ExeText, texts.Select(t => t.Replace("​", "")));
         Assert.Contains("Install / Update", texts);
         Assert.Contains("Remove (revert)", texts);
         Assert.Contains("Change .exe...", texts);
@@ -248,9 +254,9 @@ public class ComponentTests
     [Theory, MemberData(nameof(Modes))]
     public Task Details_panel_warns_about_anti_cheat_and_nothing_selected(string mode) => TestApp.Run(() =>
     {
-        using var s = Library();
+        using AppSetup s = Library();
         s.Library.SelectedGame = s.Library.Games.Single(g => g.Name == "Cheat Hunter");
-        var window = Stage.Show(new DetailsPanel { DataContext = s.Actions }, mode, 372, 800);
+        Window window = Stage.Show(new DetailsPanel { DataContext = s.Actions }, mode, 372, 800);
 
         Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(), t => string.Concat(t.Inlines?.OfType<Avalonia.Controls.Documents.Run>().Select(r => r.Text) ?? []).Contains("Easy Anti-Cheat"));
         CheckAndSnap(window, "Details-anticheat", mode);
@@ -265,10 +271,12 @@ public class ComponentTests
     [Theory, MemberData(nameof(Modes))]
     public Task Disabled_buttons_and_dropdowns_are_still_readable(string mode) => TestApp.Run(() =>
     {
-        using var s = Library();
-        s.Vm.Mod.Mod = null;   // Install is disabled now
-        s.Library.SelectedGame = s.Library.Games.Single(g => g.Name == "Beta Run");   // Remove is disabled too
-        var window = Stage.Show(new DetailsPanel { DataContext = s.Actions }, mode, 372, 800);
+        using AppSetup s = Library();
+        // Install is disabled now.
+        s.Vm.Mod.Mod = null;
+        // Remove is disabled too.
+        s.Library.SelectedGame = s.Library.Games.Single(g => g.Name == "Beta Run");
+        Window window = Stage.Show(new DetailsPanel { DataContext = s.Actions }, mode, 372, 800);
 
         var buttons = window.GetVisualDescendants().OfType<Button>().ToList();
         Assert.False(buttons.Single(b => (b.Content as string) == "Install / Update").IsEffectivelyEnabled);
@@ -282,10 +290,10 @@ public class ComponentTests
     {
         using var s = new AppSetup();
         s.Vm.Status.Text = "Found 16 games, 3 with DLSS Frame Generation.";
-        var window = Stage.Show(new StatusBar { DataContext = s.Vm.Status }, mode, 800, 40);
+        Window window = Stage.Show(new StatusBar { DataContext = s.Vm.Status }, mode, 800, 40);
 
         Assert.Contains("Found 16 games, 3 with DLSS Frame Generation.", Texts(window));
-        var bar = window.GetVisualDescendants().OfType<ProgressBar>().Single();
+        ProgressBar bar = window.GetVisualDescendants().OfType<ProgressBar>().Single();
         Assert.False(bar.IsEffectivelyVisible);
 
         s.Vm.Status.IsBusy = true;
@@ -317,9 +325,9 @@ public class ComponentTests
     [Theory, MemberData(nameof(Modes))]
     public Task The_whole_window_works_together(string mode) => TestApp.Run(() =>
     {
-        using var s = Library();
+        using AppSetup s = Library();
         s.Library.OnlyFrameGen = false;
-        var window = Stage.Show(new MainWindow(), mode, 1280, 820, s.Vm);
+        Window window = Stage.Show(new MainWindow(), mode, 1280, 820, s.Vm);
 
         Assert.Equal(6, window.GetVisualDescendants().OfType<GameCard>().Count());
         CheckAndSnap(window, "MainWindow", mode);
@@ -334,11 +342,11 @@ public class ComponentTests
     [Fact]
     public Task Switching_mode_while_open_changes_the_colours_and_stays_readable() => TestApp.Run(() =>
     {
-        using var s = Library();
+        using AppSetup s = Library();
         s.Vm.Theme = MfgManager.Core.Settings.ThemeChoice.Dark;
-        var window = Stage.Show(new MainWindow(), "Dark", 1280, 820, s.Vm);
-        var title = window.GetVisualDescendants().OfType<TextBlock>().First(t => t.Text == "MFG Manager");
-        var darkColor = ((Avalonia.Media.ISolidColorBrush)title.Foreground!).Color;
+        Window window = Stage.Show(new MainWindow(), "Dark", 1280, 820, s.Vm);
+        TextBlock title = window.GetVisualDescendants().OfType<TextBlock>().First(t => t.Text == "MFG Manager");
+        Color darkColor = ((Avalonia.Media.ISolidColorBrush)title.Foreground!).Color;
 
         s.Vm.Theme = MfgManager.Core.Settings.ThemeChoice.Light;
         Stage.Settle();

@@ -16,7 +16,7 @@ public class GroupedViewTests
         new("Lime", "Green", "Sour"),
     ];
 
-    private static string[] Names(IEnumerable<Item> items) => items.Select(i => i.Name).ToArray();
+    private static string[] Names(IEnumerable<Item> items) => [.. items.Select(i => i.Name)];
 
     [Fact]
     public void Without_settings_shows_everything_in_one_unnamed_group()
@@ -24,7 +24,7 @@ public class GroupedViewTests
         var view = new GroupedView<Item>(Fruit());
         view.Refresh();
 
-        var group = Assert.Single(view.Groups);
+        ViewGroup<Item> group = Assert.Single(view.Groups);
         Assert.False(group.HasName);
         Assert.Equal(["Cherry", "Apple", "Lime"], Names(group.Items));
         Assert.Equal(3, view.Count);
@@ -59,7 +59,7 @@ public class GroupedViewTests
     [Fact]
     public void Follows_the_source_list()
     {
-        var fruit = Fruit();
+        ObservableCollection<Item> fruit = Fruit();
         var view = new GroupedView<Item>(fruit) { Sort = ByName };
 
         fruit.Add(new Item("Banana", "Yellow"));
@@ -72,9 +72,11 @@ public class GroupedViewTests
     [Fact]
     public void Everything_filtered_out_leaves_no_groups()
     {
-        var view = new GroupedView<Item>(Fruit()) { GroupBy = item => [item.Kind] };
-
-        view.Filter = _ => false;
+        var view = new GroupedView<Item>(Fruit())
+        {
+            GroupBy = item => [item.Kind],
+            Filter = _ => false
+        };
 
         Assert.Empty(view.Groups);
         Assert.True(view.IsEmpty);
@@ -83,7 +85,7 @@ public class GroupedViewTests
     [Fact]
     public void Removes_a_group_when_its_last_item_goes()
     {
-        var fruit = Fruit();
+        ObservableCollection<Item> fruit = Fruit();
         var view = new GroupedView<Item>(fruit) { GroupBy = item => [item.Kind] };
 
         fruit.Remove(fruit.Single(f => f.Name == "Lime"));
@@ -95,14 +97,15 @@ public class GroupedViewTests
     public void Groups_stay_the_same_objects_so_the_screen_only_redraws_what_changed()
     {
         var view = new GroupedView<Item>(Fruit()) { GroupBy = item => [item.Kind] };
-        var red = view.Groups.Single(g => g.Name == "Red");
-        var resets = 0;
+        ViewGroup<Item> red = view.Groups.Single(g => g.Name == "Red");
+        int resets = 0;
         red.Items.CollectionChanged += (_, _) => resets++;
 
         view.Refresh();
 
         Assert.Same(red, view.Groups.Single(g => g.Name == "Red"));
-        Assert.Equal(0, resets);   // nothing changed, so nothing is redrawn
+        // Nothing changed, so nothing is redrawn.
+        Assert.Equal(0, resets);
     }
 
     [Fact]
@@ -128,10 +131,10 @@ public class GroupedViewTests
     [Fact]
     public void DeferRefresh_updates_once_at_the_end()
     {
-        var fruit = Fruit();
+        ObservableCollection<Item> fruit = Fruit();
         var view = new GroupedView<Item>(fruit);
         view.Refresh();
-        var updates = 0;
+        int updates = 0;
         view.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(view.Items)) updates++; };
 
         using (view.DeferRefresh())
@@ -165,7 +168,7 @@ public class GroupedViewTests
     [Fact]
     public void Stops_listening_to_the_source_after_Dispose()
     {
-        var fruit = Fruit();
+        ObservableCollection<Item> fruit = Fruit();
         var view = new GroupedView<Item>(fruit);
         view.Refresh();
 
@@ -173,26 +176,5 @@ public class GroupedViewTests
         fruit.Clear();
 
         Assert.Equal(3, view.Count);
-    }
-}
-
-public class ListSyncTests
-{
-    [Theory]
-    [InlineData(new[] { "a", "b", "c" }, new[] { "a", "b", "c" }, 0)]   // same list: no changes at all
-    [InlineData(new string[0], new[] { "a", "b" }, 2)]
-    [InlineData(new[] { "a", "b" }, new string[0], 2)]
-    [InlineData(new[] { "a", "b", "c" }, new[] { "c", "a", "b" }, 1)]   // one move, not a rebuild
-    [InlineData(new[] { "a", "b", "c" }, new[] { "a", "x", "c" }, 2)]
-    public void Makes_the_list_match_with_few_changes(string[] start, string[] wanted, int expectedChanges)
-    {
-        var list = new ObservableCollection<string>(start);
-        var changes = 0;
-        list.CollectionChanged += (_, _) => changes++;
-
-        ListSync.Sync(list, wanted);
-
-        Assert.Equal(wanted, list);
-        Assert.Equal(expectedChanges, changes);
     }
 }

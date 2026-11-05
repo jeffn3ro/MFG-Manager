@@ -9,43 +9,45 @@ namespace MfgManager.App.Services;
 /// which left a white bar on top of a dark window on Windows 10. On Linux the desktop draws the
 /// title bar and follows your desktop's theme, so there's nothing to do there.
 /// </summary>
-public static class WindowFrame
+public static partial class WindowFrame
 {
     private const int UseDarkMode = 20;
     private const int UseDarkModeOnOlderWindows10 = 19;
     private const uint ActivationChangedMessage = 0x0086;
 
     // Loaded from Windows' own folder only, so a file with the same name somewhere else can't be picked up instead.
-    [DllImport("dwmapi.dll")]
+    [LibraryImport("dwmapi.dll")]
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-    private static extern int DwmSetWindowAttribute(nint window, int attribute, ref int value, int size);
+    private static partial int DwmSetWindowAttribute(nint window, int attribute, ref int value, int size);
 
-    [DllImport("user32.dll")]
+    [LibraryImport("user32.dll")]
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-    private static extern nint SendMessageW(nint window, uint message, nint wParam, nint lParam);
+    private static partial nint SendMessageW(nint window, uint message, nint wParam, nint lParam);
 
-    [DllImport("user32.dll")]
+    [LibraryImport("user32.dll")]
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-    private static extern nint GetForegroundWindow();
+    private static partial nint GetForegroundWindow();
 
     public static void FollowTheme(Window window)
     {
         if (!OperatingSystem.IsWindows()) return;
-        Apply(window);   // the window exists but isn't on screen yet, so it never shows the wrong colour
+        // The window exists but isn't on screen yet, so it never shows the wrong colour.
+        Apply(window);
         window.Opened += (_, _) => Apply(window);
         window.ActualThemeVariantChanged += (_, _) => Apply(window);
     }
 
     private static void Apply(Window window)
     {
-        if (window.TryGetPlatformHandle() is not { HandleDescriptor: "HWND" } handle) return;   // no real window, as in the tests
+        // No real window, as in the tests.
+        if (window.TryGetPlatformHandle() is not { HandleDescriptor: "HWND" } handle) return;
 
-        var dark = window.ActualThemeVariant == ThemeVariant.Dark ? 1 : 0;
+        int dark = window.ActualThemeVariant == ThemeVariant.Dark ? 1 : 0;
         if (DwmSetWindowAttribute(handle.Handle, UseDarkMode, ref dark, sizeof(int)) != 0)
-            DwmSetWindowAttribute(handle.Handle, UseDarkModeOnOlderWindows10, ref dark, sizeof(int));
+            _ = DwmSetWindowAttribute(handle.Handle, UseDarkModeOnOlderWindows10, ref dark, sizeof(int));
 
         // Windows 10 only redraws the bar when the window gains or loses focus, so pretend that just happened.
-        var isActive = GetForegroundWindow() == handle.Handle ? 1 : 0;
+        int isActive = GetForegroundWindow() == handle.Handle ? 1 : 0;
         SendMessageW(handle.Handle, ActivationChangedMessage, 1 - isActive, 0);
         SendMessageW(handle.Handle, ActivationChangedMessage, isActive, 0);
     }

@@ -18,7 +18,6 @@ public sealed class GameActionsViewModel : ObservableObject
     private readonly IDialogs _dialogs;
     private readonly StatusViewModel _status;
     private readonly Func<string, bool> _isRunning;
-    private bool _removeModData;
 
     /// <param name="isRunning">How to tell if a game is running. Tests swap this for a fake.</param>
     public GameActionsViewModel(LibraryViewModel library, ModViewModel mod, ModInstaller installer, AppSettings settings, Action saveSettings,
@@ -56,8 +55,8 @@ public sealed class GameActionsViewModel : ObservableObject
 
     public bool RemoveModData
     {
-        get => _removeModData;
-        set => SetProperty(ref _removeModData, value);
+        get;
+        set => SetProperty(ref field, value);
     }
 
     public RelayCommand InstallCommand { get; }
@@ -82,9 +81,9 @@ public sealed class GameActionsViewModel : ObservableObject
 
         await RunAsync(() =>
         {
-            var wasInstalled = game.Status.DllName is not null;
-            var preferred = game.SelectedInstallName == GameViewModel.AutoName ? null : game.SelectedInstallName;
-            var name = _installer.Install(game.Game, mod, preferred);
+            bool wasInstalled = game.Status.DllName is not null;
+            string? preferred = game.SelectedInstallName == GameViewModel.AutoName ? null : game.SelectedInstallName;
+            string name = _installer.Install(game.Game, mod, preferred);
             _status.Text = $"{(wasInstalled ? "Updated" : "Installed")} MFG Unlocker v{mod.Version.ToString(3)} in {game.Name} as {name}.";
         });
     }
@@ -94,7 +93,7 @@ public sealed class GameActionsViewModel : ObservableObject
         if (Game is not { } game || await IsRunningAsync(game)) return;
         await RunAsync(() =>
         {
-            var deleted = _installer.Remove(game.Game, RemoveModData);
+            bool deleted = _installer.Remove(game.Game, RemoveModData);
             _status.Text = deleted ? $"Removed the mod from {game.Name}." : $"Forgot about the mod in {game.Name} (its file was already gone or replaced).";
         });
     }
@@ -103,14 +102,14 @@ public sealed class GameActionsViewModel : ObservableObject
     {
         var games = _library.Games.Where(g => g.CanRemove).ToList();
         if (games.Count == 0) return;
-        var names = string.Join("\n", games.Select(g => "  • " + g.Name));
+        string names = string.Join("\n", games.Select(g => "  • " + g.Name));
         if (!await _dialogs.ConfirmAsync($"Remove the mod from every game?\n\n{names}", warning: true)) return;
-        foreach (var game in games)
+        foreach (GameViewModel game in games)
             if (await IsRunningAsync(game)) return;
 
         await RunAsync(() =>
         {
-            foreach (var game in games) _installer.Remove(game.Game, RemoveModData);
+            foreach (GameViewModel game in games) _installer.Remove(game.Game, RemoveModData);
             _status.Text = $"Removed the mod from {LibraryViewModel.CountOfGames(games.Count)}.";
         });
     }
@@ -124,7 +123,7 @@ public sealed class GameActionsViewModel : ObservableObject
             return;
         }
 
-        var exe = await _dialogs.PickFileAsync($"Pick the .exe for {game.Name}", "Programs", "*.exe", game.Game.ExeFolder ?? game.Folder);
+        string? exe = await _dialogs.PickFileAsync($"Pick the .exe for {game.Name}", "Programs", "*.exe", game.Game.ExeFolder ?? game.Folder);
         if (exe is null) return;
         if (!PathUtil.IsInside(exe, game.Folder))
         {

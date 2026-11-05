@@ -11,11 +11,11 @@ public static class Vdf
 {
     public static IEnumerable<string> GetValues(string text, string key)
     {
-        var pattern = "\"" + Regex.Escape(key) + "\"\\s+\"((?:[^\"\\\\]|\\\\.)*)\"";
+        string pattern = "\"" + Regex.Escape(key) + "\"\\s+\"((?:[^\"\\\\]|\\\\.)*)\"";
         foreach (Match match in Regex.Matches(text, pattern, RegexOptions.IgnoreCase))
         {
-            // Steam escapes backslashes in paths: "C:\\Games" means C:\Games
-            yield return match.Groups[1].Value.Replace(@"\\", @"\");
+            // Steam escapes backslashes in paths: "C:\\Games" means C:\Games.
+            yield return match.Groups[1].Value.Replace("""\\""", """\""");
         }
     }
 

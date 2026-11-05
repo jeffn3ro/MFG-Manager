@@ -6,7 +6,7 @@ namespace MfgManager.Tests.Core;
 /// </summary>
 public class BuildPrivacyTests
 {
-    public static readonly TheoryData<string> Projects = new(@"src/MfgManager.App/obj/MfgManager.App.csproj.nuget.g.targets", @"tests/MfgManager.Tests/obj/MfgManager.Tests.csproj.nuget.g.targets");
+    public static readonly TheoryData<string> Projects = new("""src/MfgManager.App/obj/MfgManager.App.csproj.nuget.g.targets""", """tests/MfgManager.Tests/obj/MfgManager.Tests.csproj.nuget.g.targets""");
 
     [Theory]
     [MemberData(nameof(Projects))]
@@ -16,7 +16,7 @@ public class BuildPrivacyTests
         while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "MfgManager.sln"))) dir = dir.Parent;
         Assert.NotNull(dir);
 
-        var targets = File.ReadAllText(Path.Combine(dir.FullName, targetsFile));
+        string targets = File.ReadAllText(Path.Combine(dir.FullName, targetsFile));
 
         Assert.DoesNotContain("avalonia.buildservices", targets, StringComparison.OrdinalIgnoreCase);
     }

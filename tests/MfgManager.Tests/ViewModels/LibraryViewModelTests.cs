@@ -36,7 +36,7 @@ public class LibraryViewModelTests
     public void A_game_with_the_mod_stays_visible_even_without_frame_gen()
     {
         using var s = new AppSetup();
-        var game = s.AddGame("Plain", Launcher.Steam, frameGen: false);
+        GameViewModel game = s.AddGame("Plain", Launcher.Steam, frameGen: false);
         Assert.Empty(s.Shown());
 
         s.Library.OnlyFrameGen = false;
@@ -57,7 +57,8 @@ public class LibraryViewModelTests
         Assert.Equal(["Steam", "Ubisoft"], s.Library.View.Groups.Select(g => g.Name));
 
         s.Library.GroupBy = LibraryViewModel.GroupByDrm;
-        Assert.Equal(["Denuvo", GameViewModel.NoDrmFound, "Steamworks"], s.Library.View.Groups.Select(g => g.Name));   // a game appears under each of its DRM
+        // A game appears under each of its DRM.
+        Assert.Equal(["Denuvo", GameViewModel.NoDrmFound, "Steamworks"], s.Library.View.Groups.Select(g => g.Name));
         Assert.Equal("Alpha", s.Library.View.Groups.Single(g => g.Name == "Denuvo").Items.Single().Name);
 
         s.Library.GroupBy = LibraryViewModel.NoGrouping;
@@ -89,8 +90,8 @@ public class LibraryViewModelTests
     public void Clicking_a_card_selects_it_and_only_it()
     {
         using var s = new AppSetup();
-        var alpha = s.AddGame("Alpha", Launcher.Steam);
-        var beta = s.AddGame("Beta", Launcher.Steam);
+        GameViewModel alpha = s.AddGame("Alpha", Launcher.Steam);
+        GameViewModel beta = s.AddGame("Beta", Launcher.Steam);
 
         alpha.SelectCommand.Execute(null);
         Assert.True(alpha.IsSelected);
@@ -106,12 +107,13 @@ public class LibraryViewModelTests
     public void When_filters_hide_the_selected_game_the_first_visible_one_is_selected()
     {
         using var s = new AppSetup();
-        var alpha = s.AddGame("Alpha", Launcher.Steam);
-        var beta = s.AddGame("Beta", Launcher.Ubisoft);
+        GameViewModel alpha = s.AddGame("Alpha", Launcher.Steam);
+        GameViewModel beta = s.AddGame("Beta", Launcher.Ubisoft);
         s.Library.SelectedGame = beta;
 
         s.Library.SearchText = "bet";
-        Assert.Same(beta, s.Library.SelectedGame);   // still visible: stays selected
+        // Still visible: stays selected.
+        Assert.Same(beta, s.Library.SelectedGame);
 
         s.Library.SearchText = "alp";
         Assert.Same(alpha, s.Library.SelectedGame);
@@ -125,7 +127,7 @@ public class LibraryViewModelTests
     public void A_filter_whose_entry_disappears_goes_back_to_showing_everything()
     {
         using var s = new AppSetup();
-        var game = s.AddGame("Alpha", Launcher.Steam);
+        GameViewModel game = s.AddGame("Alpha", Launcher.Steam);
         s.Library.LauncherFilter = "Steam";
 
         s.Library.Games.Remove(game);
@@ -145,7 +147,8 @@ public class LibraryViewModelTests
         Assert.Equal("Ubisoft", s.Library.LauncherFilter);
         Assert.Equal(["Beta"], s.Shown());
 
-        s.Library.SelectedLauncherOption = null;   // what a list sends when its entry goes away
+        // What a list sends when its entry goes away.
+        s.Library.SelectedLauncherOption = null;
         Assert.Equal(LibraryViewModel.AllLaunchers, s.Library.LauncherFilter);
     }
 
@@ -175,8 +178,9 @@ public class LibraryViewModelTests
     public async Task Add_game_checks_only_that_game_instead_of_rescanning()
     {
         using var s = new AppSetup();
-        s.AddGame("Alpha", Launcher.Steam);   // not in the scanner's list, so a full rescan would drop it
-        var exe = s.Temp.File("games/Mine/Mine.exe", "game");
+        // Not in the scanner's list, so a full rescan would drop it.
+        s.AddGame("Alpha", Launcher.Steam);
+        string exe = s.Temp.File("games/Mine/Mine.exe", "game");
         s.Temp.File("games/Mine/nvngx_dlssg.dll");
         s.Dialogs.PickedFile = exe;
 
@@ -217,35 +221,4 @@ public class LibraryViewModelTests
         Assert.Empty(s.Library.Games);
         Assert.Empty(s.Settings.ManualGames);
     }
-}
-
-public class GameViewModelTests
-{
-    [Theory]
-    [InlineData("Assassin's Creed Mirage", "AC")]
-    [InlineData("Stray", "S")]
-    [InlineData("007 Legends", "0L")]
-    public void Initials_are_shown_while_there_is_no_cover(string name, string expected)
-    {
-        var game = new GameViewModel(new Game { Name = name, Launcher = Launcher.Steam, Folder = "x" });
-
-        Assert.Equal(expected, game.Initials);
-        Assert.True(game.HasNoCover);
-    }
-
-    [Theory]
-    [InlineData(Launcher.Gog, "GOG")]
-    [InlineData(Launcher.BattleNet, "Battle.net")]
-    [InlineData(Launcher.Ea, "EA app")]
-    [InlineData(Launcher.Manual, "Added by you")]
-    [InlineData(Launcher.Steam, "Steam")]
-    public void Launcher_names_read_well(Launcher launcher, string expected) =>
-        Assert.Equal(expected, new GameViewModel(new Game { Name = "x", Launcher = launcher, Folder = "x" }).Launcher);
-
-    [Theory]
-    [InlineData("version.dll", "WINEDLLOVERRIDES=\"version=n,b\" %command%")]
-    [InlineData("winmm.dll", "WINEDLLOVERRIDES=\"winmm=n,b\" %command%")]
-    [InlineData(null, null)]
-    public void Linux_launch_option_names_the_dll_without_its_extension(string? dll, string? expected) =>
-        Assert.Equal(expected, GameViewModel.LaunchOptionFor(dll));
 }

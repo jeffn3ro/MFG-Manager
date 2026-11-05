@@ -10,12 +10,7 @@ public sealed class GameViewModel : ObservableObject
     public const string AutoName = "Auto";
     public const string NoDrmFound = "No DRM found";
 
-    private string? _coverPath;
-    private StoreDrm? _storeDrm;
     private ModStatus _status = new(ModState.NotInstalled);
-    private IReadOnlyList<string> _installNames = [AutoName];
-    private string _selectedInstallName = AutoName;
-    private bool _isSelected;
 
     public GameViewModel(Game game, Action<GameViewModel>? onSelected = null)
     {
@@ -30,8 +25,8 @@ public sealed class GameViewModel : ObservableObject
 
     public bool IsSelected
     {
-        get => _isSelected;
-        set => SetProperty(ref _isSelected, value);
+        get;
+        set => SetProperty(ref field, value);
     }
 
     public string Name => Game.Name;
@@ -57,10 +52,10 @@ public sealed class GameViewModel : ObservableObject
 
     public string? CoverPath
     {
-        get => _coverPath;
+        get;
         set
         {
-            if (!SetProperty(ref _coverPath, value)) return;
+            if (!SetProperty(ref field, value)) return;
             OnPropertyChanged(nameof(HasNoCover));
         }
     }
@@ -70,10 +65,10 @@ public sealed class GameViewModel : ObservableObject
     /// <summary>DRM info from the Steam store page (null until it has loaded).</summary>
     public StoreDrm? StoreDrm
     {
-        get => _storeDrm;
+        get;
         set
         {
-            if (!SetProperty(ref _storeDrm, value)) return;
+            if (!SetProperty(ref field, value)) return;
             OnPropertyChanged(nameof(DrmGroups));
             OnPropertyChanged(nameof(DrmNotice));
         }
@@ -133,19 +128,19 @@ public sealed class GameViewModel : ObservableObject
     /// <summary>The file names you can pick under "Install as".</summary>
     public IReadOnlyList<string> InstallNames
     {
-        get => _installNames;
-        private set => SetProperty(ref _installNames, value);
-    }
+        get;
+        private set => SetProperty(ref field, value);
+    } = [AutoName];
 
     public string SelectedInstallName
     {
-        get => _selectedInstallName;
+        get;
         set
         {
             // A dropdown sends null while its list is being replaced; keep the current choice.
-            if (value is not null) SetProperty(ref _selectedInstallName, value);
+            if (value is not null) SetProperty(ref field, value);
         }
-    }
+    } = AutoName;
 
     /// <summary>
     /// Re-reads the mod status from disk and tells the window to redraw the card
@@ -154,10 +149,10 @@ public sealed class GameViewModel : ObservableObject
     public void Refresh(ModInstaller installer, ModPackage? mod)
     {
         _status = installer.GetStatus(Game, mod);
-        InstallNames = _status.DllName is { } current ? [current] : [AutoName, .. installer.GetFreeNames(Game)];
+        InstallNames = _status.DllName is { } current ? [current] : [AutoName, .. ModInstaller.GetFreeNames(Game)];
         SelectedInstallName = InstallNames[0];
 
-        foreach (var name in new[] { nameof(Status), nameof(CanRemove), nameof(CanChooseName), nameof(StatusText), nameof(Badge),
+        foreach (string name in new[] { nameof(Status), nameof(CanRemove), nameof(CanChooseName), nameof(StatusText), nameof(Badge),
                      nameof(BadgeIsInstalled), nameof(BadgeIsUpdate), nameof(BadgeIsCheck), nameof(LinuxLaunchOption), nameof(ExeText),
                      nameof(HasFrameGen), nameof(FrameGenText), nameof(AntiCheat), nameof(HasAntiCheat), nameof(DrmGroups) })
             OnPropertyChanged(name);

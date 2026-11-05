@@ -10,15 +10,15 @@ public static class GameProcesses
 
     public static bool IsRunning(string exePath)
     {
-        var fileName = Path.GetFileName(exePath);
-        var processes = Process.GetProcesses();
+        string fileName = Path.GetFileName(exePath);
+        Process[] processes = Process.GetProcesses();
         try
         {
             return processes.Any(process => Matches(SafeName(process), fileName));
         }
         finally
         {
-            foreach (var process in processes) process.Dispose();
+            foreach (Process process in processes) process.Dispose();
         }
     }
 
@@ -28,7 +28,7 @@ public static class GameProcesses
     public static bool Matches(string? processName, string exeFileName)
     {
         if (string.IsNullOrEmpty(processName)) return false;
-        var withoutExtension = Path.GetFileNameWithoutExtension(exeFileName);
+        string withoutExtension = Path.GetFileNameWithoutExtension(exeFileName);
 
         return processName.Equals(withoutExtension, StringComparison.OrdinalIgnoreCase)
             || processName.Equals(exeFileName, StringComparison.OrdinalIgnoreCase)
@@ -43,7 +43,8 @@ public static class GameProcesses
         }
         catch (InvalidOperationException)
         {
-            return null;   // it ended while we were looking
+            // It ended while we were looking.
+            return null;
         }
     }
 }

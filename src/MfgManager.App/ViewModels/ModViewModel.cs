@@ -15,12 +15,13 @@ public sealed class ModViewModel : ObservableObject
     private readonly UpdateChecker _updates;
     private readonly IDialogs _dialogs;
     private readonly StatusViewModel _status;
-    private readonly string _modsFolder;        // where the mod DLL is kept and updates go
-    private readonly string _downloadsFolder;   // only looked at for a newer MFGUnlocker.dll to copy into Mods
+    // Where the mod DLL is kept and updates go.
+    private readonly string _modsFolder;
+    // Only looked at for a newer MFGUnlocker.dll to copy into Mods.
+    private readonly string _downloadsFolder;
 
-    private ModPackage? _mod;
-    private ReleaseInfo? _availableUpdate;
-    private ReleaseInfo? _latestRelease;   // what GitHub said at start-up
+    // What GitHub said at start-up.
+    private ReleaseInfo? _latestRelease;
 
     public ModViewModel(AppSettings settings, Action saveSettings, UpdateChecker updates, IDialogs dialogs,
         StatusViewModel status, string modsFolder, string downloadsFolder)
@@ -44,10 +45,10 @@ public sealed class ModViewModel : ObservableObject
     /// <summary>The MFGUnlocker.dll that gets installed.</summary>
     public ModPackage? Mod
     {
-        get => _mod;
+        get;
         internal set
         {
-            if (!SetProperty(ref _mod, value)) return;
+            if (!SetProperty(ref field, value)) return;
             OnPropertyChanged(nameof(VersionText));
             OnPropertyChanged(nameof(PathText));
             OnPropertyChanged(nameof(Missing));
@@ -63,10 +64,10 @@ public sealed class ModViewModel : ObservableObject
     /// <summary>A newer release on GitHub (or the latest one, if you have none yet). Null = nothing to download.</summary>
     public ReleaseInfo? AvailableUpdate
     {
-        get => _availableUpdate;
+        get;
         private set
         {
-            if (!SetProperty(ref _availableUpdate, value)) return;
+            if (!SetProperty(ref field, value)) return;
             OnPropertyChanged(nameof(UpdateText));
             OnPropertyChanged(nameof(ShowUpdateBanner));
         }
@@ -93,7 +94,7 @@ public sealed class ModViewModel : ObservableObject
             return;
         }
 
-        var (inMods, newer) = ModPackage.FindCopies(_modsFolder, _downloadsFolder);
+        (ModPackage? inMods, ModPackage? newer) = ModPackage.FindCopies(_modsFolder, _downloadsFolder);
         if (newer is not null && await _dialogs.ConfirmAsync(
                 $"There's a newer MFG Unlocker (v{newer.Version.ToString(3)}) in your Downloads folder:\n{newer.DllPath}\n\n" +
                 $"Only use it if you downloaded it yourself from {UpdateChecker.ReleasesPage}\n\nCopy it into MFG Manager and use it?", warning: true))
@@ -105,7 +106,8 @@ public sealed class ModViewModel : ObservableObject
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                await _dialogs.ShowAsync(ex.Message, error: true);   // carry on with the copy in Mods, so the games still get scanned
+                // Carry on with the copy in Mods, so the games still get scanned.
+                await _dialogs.ShowAsync(ex.Message, error: true);
             }
         }
         Mod = inMods;
@@ -138,7 +140,8 @@ public sealed class ModViewModel : ObservableObject
         {
             var progress = new Progress<double>(done => _status.Text = $"Downloading {release.ZipName}... {done:P0}");
             Mod = await _updates.DownloadAsync(release, _modsFolder, progress);
-            _settings.ModDllPath = null;   // use the newest download from now on
+            // Use the newest download from now on.
+            _settings.ModDllPath = null;
             _saveSettings();
             AvailableUpdate = null;
             _status.Text = $"Downloaded and checked MFG Unlocker v{Mod!.Version.ToString(3)}. Games with an older copy now show \"Update\".";
@@ -156,7 +159,7 @@ public sealed class ModViewModel : ObservableObject
 
     private async Task ChooseAsync()
     {
-        var path = await _dialogs.PickFileAsync("Pick MFGUnlocker.dll", "MFG Unlocker", "*.dll", _downloadsFolder);
+        string? path = await _dialogs.PickFileAsync("Pick MFGUnlocker.dll", "MFG Unlocker", "*.dll", _downloadsFolder);
         if (path is null) return;
 
         if (ModPackage.ReadVersion(path) is not { } version)
@@ -166,7 +169,8 @@ public sealed class ModViewModel : ObservableObject
         }
         try
         {
-            Mod = ModPackage.Import(new ModPackage(path, version), _modsFolder);   // keep a copy in the Mods folder
+            // Keep a copy in the Mods folder.
+            Mod = ModPackage.Import(new ModPackage(path, version), _modsFolder);
             _settings.ModDllPath = Mod.DllPath;
             _saveSettings();
         }

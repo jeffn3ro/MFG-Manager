@@ -89,7 +89,7 @@ public sealed class GroupedView<T> : INotifyPropertyChanged, IDisposable where T
         }
         _refreshPending = false;
 
-        var wasCount = _items.Count;
+        int wasCount = _items.Count;
         _items.Clear();
         _items.AddRange(_filter is null ? _source : _source.Where(_filter));
         if (_sort is not null) StableSort(_items, _sort);
@@ -125,12 +125,12 @@ public sealed class GroupedView<T> : INotifyPropertyChanged, IDisposable where T
         }
         else
         {
-            foreach (var item in _items)
-            foreach (var name in _groupBy(item).Distinct())
-            {
-                if (!wanted.TryGetValue(name, out var members)) wanted[name] = members = [];
-                members.Add(item);
-            }
+            foreach (T item in _items)
+                foreach (string name in _groupBy(item).Distinct())
+                {
+                    if (!wanted.TryGetValue(name, out List<T>? members)) wanted[name] = members = [];
+                    members.Add(item);
+                }
         }
 
         var existing = Groups.ToDictionary(group => group.Name);
@@ -139,7 +139,7 @@ public sealed class GroupedView<T> : INotifyPropertyChanged, IDisposable where T
             .ToList();
         ListSync.Sync(Groups, ordered);
 
-        foreach (var group in Groups) group.SetItems(wanted[group.Name]);
+        foreach (ViewGroup<T> group in Groups) group.SetItems(wanted[group.Name]);
     }
 
     private static void StableSort(List<T> items, IComparer<T> comparer)
@@ -165,31 +165,5 @@ public sealed class GroupedView<T> : INotifyPropertyChanged, IDisposable where T
             view._deferDepth--;
             if (view._deferDepth == 0 && view._refreshPending) view.Refresh();
         }
-    }
-}
-
-/// <summary>One group in a <see cref="GroupedView{T}"/>: a name and its items.</summary>
-public sealed class ViewGroup<T> : INotifyPropertyChanged where T : class
-{
-    /// <summary>The name of the single group you get when there's no grouping.</summary>
-    public const string NoName = "";
-
-    internal ViewGroup(string name) => Name = name;
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    public string Name { get; }
-
-    /// <summary>False for the single group you get without grouping, so the screen can leave out its heading.</summary>
-    public bool HasName => Name.Length > 0;
-
-    public ObservableCollection<T> Items { get; } = [];
-    public int Count => Items.Count;
-
-    internal void SetItems(IReadOnlyList<T> items)
-    {
-        var before = Items.Count;
-        ListSync.Sync(Items, items);
-        if (before != Items.Count) PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Count)));
     }
 }

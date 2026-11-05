@@ -13,15 +13,15 @@ public static class Contrast
 
     public static double Ratio(Color a, Color b)
     {
-        var lighter = Math.Max(Luminance(a), Luminance(b));
-        var darker = Math.Min(Luminance(a), Luminance(b));
+        double lighter = Math.Max(Luminance(a), Luminance(b));
+        double darker = Math.Min(Luminance(a), Luminance(b));
         return (lighter + 0.05) / (darker + 0.05);
     }
 
     /// <summary>The colour you see when a see-through colour is painted over a solid one.</summary>
     public static Color Blend(Color top, Color bottom)
     {
-        var alpha = top.A / 255.0;
+        double alpha = top.A / 255.0;
         byte Mix(byte t, byte b) => (byte)Math.Round(t * alpha + b * (1 - alpha));
         return Color.FromRgb(Mix(top.R, bottom.R), Mix(top.G, bottom.G), Mix(top.B, bottom.B));
     }
@@ -30,7 +30,7 @@ public static class Contrast
     {
         static double Channel(byte value)
         {
-            var c = value / 255.0;
+            double c = value / 255.0;
             return c <= 0.03928 ? c / 12.92 : Math.Pow((c + 0.055) / 1.055, 2.4);
         }
         return 0.2126 * Channel(color.R) + 0.7152 * Channel(color.G) + 0.0722 * Channel(color.B);

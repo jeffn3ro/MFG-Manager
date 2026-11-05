@@ -17,7 +17,7 @@ public static class ReadabilityCheck
 {
     public static void Assert_all_text_is_readable(TopLevel window, string context)
     {
-        var problems = FindProblems(window);
+        List<string> problems = FindProblems(window);
         Assert.True(problems.Count == 0, $"{context}: hard to read:\n" + string.Join("\n", problems));
     }
 
@@ -27,23 +27,23 @@ public static class ReadabilityCheck
     public static List<string> FindProblems(TopLevel window)
     {
         var problems = new List<string>();
-        foreach (var control in window.GetVisualDescendants().OfType<Control>())
+        foreach (Control control in window.GetVisualDescendants().OfType<Control>())
         {
             if (!control.IsEffectivelyVisible || TextOf(control) is not { Length: > 0 } text) continue;
 
-            var large = FontSizeOf(control) >= 24 || (FontSizeOf(control) >= 18.66 && (int)FontWeightOf(control) >= 700);
-            var minimum = large ? Contrast.LargeText : Contrast.NormalText;
+            bool large = FontSizeOf(control) >= 24 || (FontSizeOf(control) >= 18.66 && (int)FontWeightOf(control) >= 700);
+            double minimum = large ? Contrast.LargeText : Contrast.NormalText;
 
-            foreach (var foreground in ForegroundsOf(control))
-            foreach (var background in BackgroundsBehind(control))
-            {
-                var shown = Contrast.Blend(foreground, background);
-                var ratio = Contrast.Ratio(shown, background);
-                if (ratio < minimum)
-                    problems.Add($"  \"{Short(text)}\" in {control.GetType().Name}: {shown} on {background} is only {ratio:0.00}:1 (needs {minimum})");
-            }
+            foreach (Color foreground in ForegroundsOf(control))
+                foreach (Color background in BackgroundsBehind(control))
+                {
+                    Color shown = Contrast.Blend(foreground, background);
+                    double ratio = Contrast.Ratio(shown, background);
+                    if (ratio < minimum)
+                        problems.Add($"  \"{Short(text)}\" in {control.GetType().Name}: {shown} on {background} is only {ratio:0.00}:1 (needs {minimum})");
+                }
         }
-        return problems.Distinct().ToList();
+        return [.. problems.Distinct()];
     }
 
     private static string? TextOf(Control control) => control switch
@@ -66,17 +66,17 @@ public static class ReadabilityCheck
             TextPresenter presenter => presenter.Foreground,
             _ => null,
         };
-        foreach (var color in ColorsOf(main, OpacityOf(control))) yield return color;
+        foreach (Color color in ColorsOf(main, OpacityOf(control))) yield return color;
 
         if (control is TextBlock { Inlines: { } inlines })
-            foreach (var run in inlines.OfType<Run>())
+            foreach (Run run in inlines.OfType<Run>())
                 if (run.IsSet(TextElement.ForegroundProperty))
-                    foreach (var color in ColorsOf(run.Foreground, OpacityOf(control))) yield return color;
+                    foreach (Color color in ColorsOf(run.Foreground, OpacityOf(control))) yield return color;
     }
 
     private static double OpacityOf(Visual visual)
     {
-        var opacity = 1.0;
+        double opacity = 1.0;
         for (Visual? v = visual; v is not null; v = v.GetVisualParent()) opacity *= v.Opacity;
         return opacity;
     }
@@ -85,9 +85,9 @@ public static class ReadabilityCheck
     private static List<Color> BackgroundsBehind(Control control)
     {
         var layers = new List<IBrush>();
-        for (var v = control.GetVisualParent(); v is not null; v = v.GetVisualParent())
+        for (Visual? v = control.GetVisualParent(); v is not null; v = v.GetVisualParent())
         {
-            var brush = v switch
+            IBrush? brush = v switch
             {
                 Border border => border.Background,
                 Panel panel => panel.Background,
@@ -103,10 +103,10 @@ public static class ReadabilityCheck
 
         // Paint from the bottom up, starting from black if somehow nothing is solid.
         List<Color> result = [Colors.Black];
-        for (var i = layers.Count - 1; i >= 0; i--)
+        for (int i = layers.Count - 1; i >= 0; i--)
         {
             var colors = ColorsOf(layers[i], 1).ToList();
-            result = result.SelectMany(below => colors.Select(color => Contrast.Blend(color, below))).Distinct().ToList();
+            result = [.. result.SelectMany(below => colors.Select(color => Contrast.Blend(color, below))).Distinct()];
         }
         return result;
     }
@@ -114,14 +114,14 @@ public static class ReadabilityCheck
     /// <summary>A plain colour, or both ends of a gradient: the text has to be readable at every point of it.</summary>
     private static IEnumerable<Color> ColorsOf(IBrush? brush, double opacity)
     {
-        var total = opacity * (brush?.Opacity ?? 1);
+        double total = opacity * (brush?.Opacity ?? 1);
         switch (brush)
         {
             case ISolidColorBrush solid:
                 yield return Faded(solid.Color, total);
                 break;
             case IGradientBrush gradient:
-                foreach (var stop in gradient.GradientStops) yield return Faded(stop.Color, total);
+                foreach (IGradientStop stop in gradient.GradientStops) yield return Faded(stop.Color, total);
                 break;
         }
     }

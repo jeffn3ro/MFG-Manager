@@ -1,11 +1,7 @@
-using Microsoft.Win32;
 using MfgManager.Core.Models;
+using Microsoft.Win32;
 
 namespace MfgManager.Core.Scanning.Launchers;
-
-/// <summary>One game from GOG's registry list.</summary>
-/// <param name="DependsOn">Set on DLC and add-ons (the id of the game they belong to). They share the game's folder.</param>
-public sealed record GogEntry(string? Name, string? Path, string? Exe, string? DependsOn);
 
 public static class GogLibrary
 {
@@ -13,12 +9,12 @@ public static class GogLibrary
     {
         if (!OperatingSystem.IsWindows()) yield break;
 
-        using var root = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\WOW6432Node\GOG.com\Games");
+        using RegistryKey? root = Registry.LocalMachine.OpenSubKey("""SOFTWARE\WOW6432Node\GOG.com\Games""");
         if (root is null) yield break;
 
-        foreach (var id in root.GetSubKeyNames())
+        foreach (string id in root.GetSubKeyNames())
         {
-            using var key = root.OpenSubKey(id);
+            using RegistryKey? key = root.OpenSubKey(id);
             if (key is null) continue;
             yield return new GogEntry(key.GetValue("gameName") as string, key.GetValue("path") as string,
                 key.GetValue("exe") as string, key.GetValue("dependsOn") as string);
@@ -31,7 +27,7 @@ public static class GogLibrary
     /// </summary>
     public static IEnumerable<Game> FindGames(IEnumerable<GogEntry> entries)
     {
-        foreach (var entry in entries)
+        foreach (GogEntry entry in entries)
         {
             if (!string.IsNullOrEmpty(entry.DependsOn)) continue;
             if (entry.Path is not { } path || !Directory.Exists(path)) continue;

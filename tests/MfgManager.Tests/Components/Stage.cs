@@ -20,7 +20,7 @@ public static class Stage
     public static Window Show(Control component, string modeName, double width = 800, double height = 600, object? dataContext = null)
     {
         Application.Current!.RequestedThemeVariant = Mode(modeName);
-        var window = component as Window ?? new Window { Content = component };
+        Window window = component as Window ?? new Window { Content = component };
         window.Width = width;
         window.Height = height;
         if (dataContext is not null) window.DataContext = dataContext;
@@ -32,7 +32,7 @@ public static class Stage
     /// <summary>Lets the window finish layout, bindings and anything waiting to run.</summary>
     public static void Settle()
     {
-        for (var i = 0; i < 4; i++)
+        for (int i = 0; i < 4; i++)
         {
             Dispatcher.UIThread.RunJobs();
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
@@ -43,7 +43,7 @@ public static class Stage
     public static void Snapshot(TopLevel window, string name, string modeName)
     {
         Settle();
-        using var frame = window.CaptureRenderedFrame();
+        using WriteableBitmap? frame = window.CaptureRenderedFrame();
         Assert.NotNull(frame);
         if (ShotsFolder is not { } folder) return;
         Directory.CreateDirectory(folder);

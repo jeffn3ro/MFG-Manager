@@ -43,7 +43,8 @@ Arrows mean "uses". The most important rule is that **Core knows nothing about t
 ```text
 MFG-Manager/
 ├─ MfgManager.sln                 the solution
-├─ Directory.Build.props          settings shared by all projects (version, warnings = errors)
+├─ Directory.Build.props          settings shared by all projects (version, warnings = errors, code checks)
+├─ .editorconfig                  code style rules
 ├─ global.json                    which .NET SDK and test runner to use
 ├─ src/
 │  ├─ MfgManager.Core/            the logic: no window code
@@ -251,6 +252,23 @@ dotnet list MfgManager.sln package --vulnerable --include-transitive
 | Mods folder | Next to the app | `~/.local/share/MFG Manager/Mods`, because the app's folder may be read-only |
 | Finds games from | Steam, Ubisoft, Epic, GOG, Xbox, Battle.net, EA, Rockstar | Steam and Heroic, normal or Flatpak |
 | Loading the mod | Automatic | Steam needs a launch option like `WINEDLLOVERRIDES="version=n,b" %command%`. The details panel shows it with a **Copy** button |
+
+## Code style
+
+The code follows Microsoft's [C# conventions](https://learn.microsoft.com/dotnet/csharp/fundamentals/coding-style/coding-conventions), and the build enforces most of them. `.editorconfig` holds the style rules and `AnalysisMode` in `Directory.Build.props` turns on Microsoft's recommended checks. Warnings count as errors, so breaking a rule stops the build. Most style problems fix themselves with:
+
+```bash
+dotnet format MfgManager.sln
+```
+
+- **One class per file:** each file is named after its class, and a test checks this. A small type used only inside one class stays inside that class.
+- **Newer .NET features:** `[GeneratedRegex]` builds search patterns at compile time, `[LibraryImport]` generates the calls into Windows, and the `field` keyword saves writing a separate variable behind each property.
+
+Three recommendations are skipped on purpose:
+
+- **`ConfigureAwait(false)`:** `SteamStore` relies on staying on the window's thread, so adding this could cause bugs where two lookups change its data at once.
+- **The 65-character line limit:** Microsoft sets that for its documentation pages, which are read on phones.
+- **Test names:** they keep their underscores, because reading like a sentence is what Microsoft's testing guide recommends.
 
 ## Tests
 

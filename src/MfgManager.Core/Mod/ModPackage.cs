@@ -3,11 +3,14 @@ using System.Text.RegularExpressions;
 namespace MfgManager.Core.Mod;
 
 /// <summary>A copy of MFGUnlocker.dll on disk (usually in your Downloads folder) and its version.</summary>
-public sealed record ModPackage(string DllPath, Version Version)
+public sealed partial record ModPackage(string DllPath, Version Version)
 {
     /// <summary>The "Product name" written inside the mod's DLL. That's how we recognise it.</summary>
     public const string ProductName = "MFG Unlocker";
     public const string FileName = "MFGUnlocker.dll";
+
+    [GeneratedRegex("""(\d+)(?:\.(\d+))?(?:\.(\d+))?""")]
+    private static partial Regex VersionNumbers { get; }
 
     /// <summary>Reads the version out of a DLL, or null when the DLL isn't MFG Unlocker.</summary>
     public static Version? ReadVersion(string dllPath)
@@ -36,8 +39,8 @@ public sealed record ModPackage(string DllPath, Version Version)
     /// </summary>
     public static (ModPackage? InMods, ModPackage? NewerDownload) FindCopies(string modsFolder, string downloadsFolder, Func<string, Version?>? readVersion = null)
     {
-        var inMods = FindNewestIn(modsFolder, readVersion);
-        var inDownloads = FindNewestIn(downloadsFolder, readVersion);
+        ModPackage? inMods = FindNewestIn(modsFolder, readVersion);
+        ModPackage? inDownloads = FindNewestIn(downloadsFolder, readVersion);
         return (inMods, inDownloads is not null && (inMods is null || inDownloads.Version > inMods.Version) ? inDownloads : null);
     }
 
@@ -46,7 +49,7 @@ public sealed record ModPackage(string DllPath, Version Version)
     {
         if (PathUtil.IsInside(source.DllPath, modsFolder)) return source;
 
-        var target = Path.Combine(modsFolder, $"MFGUnlocker-v{source.Version.ToString(3)}", FileName);
+        string target = Path.Combine(modsFolder, $"MFGUnlocker-v{source.Version.ToString(3)}", FileName);
         Directory.CreateDirectory(Path.GetDirectoryName(target)!);
         File.Copy(source.DllPath, target, overwrite: true);
         return source with { DllPath = target };
@@ -59,13 +62,13 @@ public sealed record ModPackage(string DllPath, Version Version)
     public static Version ParseVersion(string? text)
     {
         var unreadable = new Version(0, 0, 0);
-        var match = Regex.Match(text ?? "", @"(\d+)(?:\.(\d+))?(?:\.(\d+))?");
+        Match match = VersionNumbers.Match(text ?? "");
         if (!match.Success) return unreadable;
 
-        var parts = new int[3];
-        for (var i = 0; i < parts.Length; i++)
+        int[] parts = new int[3];
+        for (int i = 0; i < parts.Length; i++)
         {
-            var group = match.Groups[i + 1];
+            Group group = match.Groups[i + 1];
             if (group.Success && !int.TryParse(group.Value, out parts[i])) return unreadable;
         }
         return new Version(parts[0], parts[1], parts[2]);

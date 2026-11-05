@@ -13,7 +13,7 @@ public static class HeroicLibrary
     public static IEnumerable<string> DefaultConfigFolders()
     {
         if (OperatingSystem.IsWindows()) return [];
-        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         return [Path.Combine(home, ".config/heroic"), Path.Combine(home, ".var/app/com.heroicgameslauncher.hgl/config/heroic")];
     }
 
@@ -24,16 +24,16 @@ public static class HeroicLibrary
     private static List<Game> EpicGames(string configFolder)
     {
         var games = new List<Game>();
-        using var doc = ReadJson(Path.Combine(configFolder, "legendaryConfig", "legendary", "installed.json"));
+        using JsonDocument? doc = ReadJson(Path.Combine(configFolder, "legendaryConfig", "legendary", "installed.json"));
         if (doc?.RootElement.ValueKind != JsonValueKind.Object) return games;
 
-        foreach (var entry in doc.RootElement.EnumerateObject())
+        foreach (JsonProperty entry in doc.RootElement.EnumerateObject())
         {
             if (entry.Value.ValueKind != JsonValueKind.Object) continue;
-            var folder = Text(entry.Value, "install_path");
+            string? folder = Text(entry.Value, "install_path");
             if (folder is null || !Directory.Exists(folder)) continue;
 
-            var executable = Text(entry.Value, "executable")?.Replace('\\', '/');
+            string? executable = Text(entry.Value, "executable")?.Replace('\\', '/');
             games.Add(new Game
             {
                 Name = Text(entry.Value, "title") ?? Path.GetFileName(folder),
@@ -49,20 +49,20 @@ public static class HeroicLibrary
     private static List<Game> GogGames(string configFolder)
     {
         var games = new List<Game>();
-        using var doc = ReadJson(Path.Combine(configFolder, "gog_store", "installed.json"));
+        using JsonDocument? doc = ReadJson(Path.Combine(configFolder, "gog_store", "installed.json"));
         if (doc?.RootElement.ValueKind != JsonValueKind.Object
-            || !doc.RootElement.TryGetProperty("installed", out var installed)
+            || !doc.RootElement.TryGetProperty("installed", out JsonElement installed)
             || installed.ValueKind != JsonValueKind.Array) return games;
 
-        foreach (var entry in installed.EnumerateArray())
+        foreach (JsonElement entry in installed.EnumerateArray())
         {
             if (entry.ValueKind != JsonValueKind.Object) continue;
-            if (entry.TryGetProperty("is_dlc", out var isDlc) && isDlc.ValueKind == JsonValueKind.True) continue;
+            if (entry.TryGetProperty("is_dlc", out JsonElement isDlc) && isDlc.ValueKind == JsonValueKind.True) continue;
 
-            var folder = Text(entry, "install_path");
+            string? folder = Text(entry, "install_path");
             if (folder is null || !Directory.Exists(folder)) continue;
 
-            var normalized = PathUtil.Normalize(folder);
+            string normalized = PathUtil.Normalize(folder);
             games.Add(new Game { Name = Path.GetFileName(normalized), Launcher = Launcher.Gog, Folder = normalized });
         }
         return games;
@@ -76,5 +76,5 @@ public static class HeroicLibrary
     }
 
     private static string? Text(JsonElement element, string name) =>
-        element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
+        element.TryGetProperty(name, out JsonElement value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
 }

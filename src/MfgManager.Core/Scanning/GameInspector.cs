@@ -7,7 +7,7 @@ namespace MfgManager.Core.Scanning;
 /// Looks through a game's files to work out: does it have DLSS Frame Generation,
 /// does it have anti-cheat, which DRM does it use, and which .exe is the real game.
 /// </summary>
-public static class GameInspector
+public static partial class GameInspector
 {
     // Either of these files means the game ships NVIDIA DLSS Frame Generation. sl.interposer.dll doesn't count: it's
     // Streamline's general loader, also used for plain DLSS and Reflex. Dead Space has it and no Frame Generation.
@@ -40,17 +40,33 @@ public static class GameInspector
     // File or folder name -> anti-cheat it belongs to.
     private static readonly (Regex Pattern, string Name)[] AntiCheats =
     [
-        (new Regex("^EasyAntiCheat", RegexOptions.IgnoreCase), "Easy Anti-Cheat"),
-        (new Regex("^(BattlEye|BEService)", RegexOptions.IgnoreCase), "BattlEye"),
-        (new Regex("^(GameGuard|nProtect)", RegexOptions.IgnoreCase), "nProtect GameGuard"),
-        (new Regex("^EAAntiCheat", RegexOptions.IgnoreCase), "EA Javelin"),
-        (new Regex("^xigncode", RegexOptions.IgnoreCase), "XIGNCODE3"),
+        (EasyAntiCheatName, "Easy Anti-Cheat"),
+        (BattlEyeName, "BattlEye"),
+        (GameGuardName, "nProtect GameGuard"),
+        (EaJavelinName, "EA Javelin"),
+        (XigncodeName, "XIGNCODE3"),
     ];
 
+    [GeneratedRegex("^EasyAntiCheat", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex EasyAntiCheatName { get; }
+
+    [GeneratedRegex("^(BattlEye|BEService)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex BattlEyeName { get; }
+
+    [GeneratedRegex("^(GameGuard|nProtect)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex GameGuardName { get; }
+
+    [GeneratedRegex("^EAAntiCheat", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex EaJavelinName { get; }
+
+    [GeneratedRegex("^xigncode", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex XigncodeName { get; }
+
     // .exe files that are never the game itself.
-    private static readonly Regex NotTheGame = new(
+    [GeneratedRegex(
         "unins|crash|setup|redist|dxsetup|directx|launcher|anti-?cheat|beservice|battleye|helper|report|prereq|dotnet|cefprocess|update|install",
-        RegexOptions.IgnoreCase);
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex NotTheGame { get; }
 
     // Folders inside a game that hold modding or developer tools, never the game itself.
     // Cyberpunk 2077's tools\redmod\bin\scc.exe is twice the size of the real game .exe.
@@ -76,7 +92,7 @@ public static class GameInspector
         if (LauncherDrm.GetValueOrDefault(game.Launcher) is { } launcherDrm && !game.Drm.Contains(launcherDrm)) game.Drm.Add(launcherDrm);
 
         // settings.json can be changed by any program, and the mod goes next to this .exe, so it has to belong to this game.
-        var useOverride = exeOverride is not null && File.Exists(exeOverride) && PathUtil.IsInside(exeOverride, game.Folder);
+        bool useOverride = exeOverride is not null && File.Exists(exeOverride) && PathUtil.IsInside(exeOverride, game.Folder);
         game.Exe = useOverride ? exeOverride : PickGameExe(files, game.ExeHint, game.Folder);
     }
 
@@ -97,7 +113,7 @@ public static class GameInspector
             .Where(f => CouldBeTheGame(f.FullName))
             .ToList();
 
-        var shipping = exes
+        FileInfo? shipping = exes
             .Where(f => f.Name.EndsWith("-Shipping.exe", StringComparison.OrdinalIgnoreCase))
             .MaxBy(f => f.Length);
         if (shipping is not null) return shipping.FullName;

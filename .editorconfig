@@ -1,0 +1,47 @@
+# Code style, based on the .editorconfig Microsoft uses for its .NET docs.
+# Rider, Visual Studio, dotnet format and the build all read this file.
+root = true
+
+[*]
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
+
+[*.{csproj,wixproj,props,targets,axaml,xml,wxs,wxl,json}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[{*.sh,PKGBUILD,deb-control,*.desktop}]
+end_of_line = lf
+
+[*.cs]
+dotnet_sort_system_directives_first = true
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_using_directive_placement = outside_namespace:warning
+
+# A type is written out unless it's obvious from the right side, like "new Game()".
+csharp_style_var_for_built_in_types = false:suggestion
+csharp_style_var_when_type_is_apparent = false:none
+csharp_style_var_elsewhere = false:suggestion
+# Splitting a tuple gives local variables capitalised names like Id, which goes against the naming rules.
+csharp_style_deconstructed_variable_declaration = false:none
+
+# Remove usings nothing needs. dotnet format fixes this one.
+dotnet_diagnostic.IDE0005.severity = suggestion
+
+# Use the source generators for regular expressions and calls into Windows.
+dotnet_diagnostic.SYSLIB1045.severity = warning
+dotnet_diagnostic.SYSLIB1054.severity = warning
+
+# This rule is about names that clash with Visual Basic keywords, like the Mod namespace. Nothing here is used from Visual Basic.
+dotnet_diagnostic.CA1716.severity = none
+
+[tests/**.cs]
+# Microsoft's unit test guidance uses underscores in test names.
+dotnet_diagnostic.CA1707.severity = none
+
+# Speed doesn't matter for a regular expression in a test.
+dotnet_diagnostic.SYSLIB1045.severity = none

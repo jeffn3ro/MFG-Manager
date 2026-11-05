@@ -1,7 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.VisualTree;
 using MfgManager.App.Components.Shell;
-using MfgManager.App.Services;
 using MfgManager.App.ViewModels;
 using MfgManager.Core.Mod;
 using MfgManager.Core.Platform;
@@ -25,9 +24,9 @@ public class RealLibraryCheck
     {
         if (File.Exists(source)) File.Copy(source, target);
         if (!Directory.Exists(source)) return;
-        foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
+        foreach (string file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
         {
-            var copy = Path.Combine(target, Path.GetRelativePath(source, file));
+            string copy = Path.Combine(target, Path.GetRelativePath(source, file));
             Directory.CreateDirectory(Path.GetDirectoryName(copy)!);
             File.Copy(file, copy);
         }
@@ -39,23 +38,23 @@ public class RealLibraryCheck
         Assert.SkipUnless(Environment.GetEnvironmentVariable("MFG_REAL_SCAN") == "1", "Set MFG_REAL_SCAN=1 to scan this computer's real games");
 
         using var temp = new TempFolder();
-        var settingsFile = Path.Combine(temp.Path, "settings.json");
+        string settingsFile = Path.Combine(temp.Path, "settings.json");
         CopyIfThere(Path.Combine(AppPaths.DataFolder, "settings.json"), settingsFile);
         CopyIfThere(Path.Combine(AppPaths.DataFolder, "cache"), temp.Folder("cache"));
-        var mods = temp.Folder("mods");
-        CopyIfThere(@"C:\Program Files\MFG Manager\Mods", mods);
+        string mods = temp.Folder("mods");
+        CopyIfThere("""C:\Program Files\MFG Manager\Mods""", mods);
 
         var store = new SettingsStore(settingsFile);
-        var settings = store.Load();
+        AppSettings settings = store.Load();
         void Save() => store.Save(settings);
         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
         http.DefaultRequestHeaders.UserAgent.ParseAdd("MFG-Manager/2.0");
         var dialogs = new FakeDialogs { Answer = false };
 
         var vm = new MainViewModel(settings, Save, new GameScanner(settings), new ModInstaller(settings, Save, temp.Folder("removed")),
-            new SteamStore(http, Path.Combine(temp.Path, "cache")), new UpdateChecker(http), dialogs, new ThemeService(), mods, temp.Folder("downloads"));
+            new SteamStore(http, Path.Combine(temp.Path, "cache")), new UpdateChecker(http), dialogs, mods, temp.Folder("downloads"));
 
-        var window = Stage.Show(new MainWindow(), mode, 1280, 820, vm);
+        Window window = Stage.Show(new MainWindow(), mode, 1280, 820, vm);
         await vm.InitializeAsync();
         Stage.Settle();
 
@@ -69,12 +68,12 @@ public class RealLibraryCheck
         Stage.Snapshot(window, "Real-all", mode);
 
         var report = new List<string> { $"status: {vm.Status.Text}", $"mod: {vm.Mod.VersionText} at {vm.Mod.PathText}", $"update: {vm.Mod.UpdateText}", $"games: {vm.Library.Games.Count}", "" };
-        foreach (var game in vm.Library.Games.OrderBy(g => g.Launcher).ThenBy(g => g.Name))
+        foreach (GameViewModel game in vm.Library.Games.OrderBy(g => g.Launcher).ThenBy(g => g.Name))
         {
             vm.Library.SelectedGame = game;
             Stage.Settle();
             ReadabilityCheck.Assert_all_text_is_readable(window, $"{game.Name} in {mode} mode");
-            var texts = window.GetVisualDescendants().OfType<TextBlock>().Count(t => t.IsEffectivelyVisible);
+            int texts = window.GetVisualDescendants().OfType<TextBlock>().Count(t => t.IsEffectivelyVisible);
             report.Add($"{game.Launcher,-14} {game.Name,-45} badge={game.Badge ?? "-",-10} framegen={game.Game.HasFrameGen,-5} cover={(game.CoverPath is null ? "no" : "yes"),-3} drm=[{string.Join(", ", game.Game.Drm)}] anticheat={game.Game.AntiCheat ?? "-"} exe={game.Game.Exe} status=[{game.StatusText}]");
             Assert.True(texts > 0);
         }
@@ -84,7 +83,7 @@ public class RealLibraryCheck
         if (Environment.GetEnvironmentVariable("MFG_SHOTS") is { } folder)
             File.WriteAllLines(Path.Combine(folder, $"real-report-{mode}.txt"), report);
 
-        var cyberpunk = vm.Library.Games.FirstOrDefault(g => g.Name.Contains("Cyberpunk"));
+        GameViewModel? cyberpunk = vm.Library.Games.FirstOrDefault(g => g.Name.Contains("Cyberpunk"));
         if (cyberpunk is not null)
         {
             vm.Library.SelectedGame = cyberpunk;

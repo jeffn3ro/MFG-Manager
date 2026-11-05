@@ -3,20 +3,6 @@ using MfgManager.Core.Settings;
 
 namespace MfgManager.Core.Mod;
 
-public enum ModState
-{
-    NotInstalled,
-    Installed,
-    /// <summary>Installed, but an older version than the one you have downloaded.</summary>
-    Outdated,
-    /// <summary>We installed it, but the file is gone (e.g. the game verified/repaired its files).</summary>
-    Missing,
-    /// <summary>We installed it, but something else (game update, another mod) now uses that file name.</summary>
-    Replaced,
-}
-
-public sealed record ModStatus(ModState State, string? DllName = null, Version? InstalledVersion = null);
-
 /// <summary>
 /// Copies the mod next to a game's .exe and takes it out again.
 ///
@@ -26,7 +12,10 @@ public sealed record ModStatus(ModState State, string? DllName = null, Version? 
 ///   - Never overwrite a DLL that belongs to the game or another mod. Use a free name instead.
 ///   - Only one copy per game.
 /// </summary>
-public sealed class ModInstaller
+/// <param name="saveSettings">Called after every change so the install list is never lost.</param>
+/// <param name="removedFilesFolder">Where the mod's settings/logs are moved when you remove them.</param>
+/// <param name="readModVersion">How to tell if a DLL is the mod. Tests swap this for a fake.</param>
+public sealed class ModInstaller(AppSettings settings, Action saveSettings, string removedFilesFolder, Func<string, Version?>? readModVersion = null)
 {
     /// <summary>File names the mod supports (from its README), in the order "Auto" tries them.</summary>
     public static readonly IReadOnlyList<string> SupportedNames =
@@ -39,44 +28,33 @@ public sealed class ModInstaller
     /// <summary>Settings, status and log files the mod writes next to the game.</summary>
     private static readonly string[] ModDataPatterns = ["RTXMFG*", "RTX40MFG*", "RTX30MFG*"];
 
-    private readonly AppSettings _settings;
-    private readonly Action _saveSettings;
-    private readonly string _removedFilesFolder;
-    private readonly Func<string, Version?> _readModVersion;
-
-    /// <param name="saveSettings">Called after every change so the install list is never lost.</param>
-    /// <param name="removedFilesFolder">Where the mod's settings/logs are moved when you remove them.</param>
-    /// <param name="readModVersion">How to tell if a DLL is the mod. Tests swap this for a fake.</param>
-    public ModInstaller(AppSettings settings, Action saveSettings, string removedFilesFolder, Func<string, Version?>? readModVersion = null)
-    {
-        _settings = settings;
-        _saveSettings = saveSettings;
-        _removedFilesFolder = removedFilesFolder;
-        _readModVersion = readModVersion ?? ModPackage.ReadVersion;
-    }
+    private readonly AppSettings _settings = settings;
+    private readonly Action _saveSettings = saveSettings;
+    private readonly string _removedFilesFolder = removedFilesFolder;
+    private readonly Func<string, Version?> _readModVersion = readModVersion ?? ModPackage.ReadVersion;
 
     public ModStatus GetStatus(Game game, ModPackage? currentMod)
     {
         if (game.ExeFolder is not { } folder) return new ModStatus(ModState.NotInstalled);
 
-        var name = FindInstalledName(folder);
+        string? name = FindInstalledName(folder);
         if (name is null) return new ModStatus(ModState.NotInstalled);
 
-        var path = Path.Combine(folder, name);
+        string path = Path.Combine(folder, name);
         if (!File.Exists(path)) return new ModStatus(ModState.Missing, name);
 
-        var version = _readModVersion(path);
+        Version? version = _readModVersion(path);
         if (version is null) return new ModStatus(ModState.Replaced, name);
         if (currentMod is not null && version < currentMod.Version) return new ModStatus(ModState.Outdated, name, version);
         return new ModStatus(ModState.Installed, name, version);
     }
 
     /// <summary>Supported names that aren't already used by a file in the game folder.</summary>
-    public IReadOnlyList<string> GetFreeNames(Game game)
+    public static IReadOnlyList<string> GetFreeNames(Game game)
     {
         if (game.ExeFolder is not { } folder) return [];
-        var taken = PathUtil.FileNamesIn(folder);
-        return SupportedNames.Where(name => !taken.Contains(name)).ToList();
+        HashSet<string> taken = PathUtil.FileNamesIn(folder);
+        return [.. SupportedNames.Where(name => !taken.Contains(name))];
     }
 
     /// <summary>Installs the mod, or updates it in place if it's already there.</summary>
@@ -84,10 +62,10 @@ public sealed class ModInstaller
     /// <returns>The file name the mod was installed as.</returns>
     public string Install(Game game, ModPackage mod, string? preferredName = null)
     {
-        var folder = game.ExeFolder ?? throw new InvalidOperationException("Couldn't find this game's .exe, so there's nowhere to put the mod.");
+        string folder = game.ExeFolder ?? throw new InvalidOperationException("Couldn't find this game's .exe, so there's nowhere to put the mod.");
         if (IsInWindowsFolder(folder))
             throw new InvalidOperationException("That folder belongs to Windows, so the mod won't be put there.");
-        var status = GetStatus(game, mod);
+        ModStatus status = GetStatus(game, mod);
 
         string name;
         if (status.State == ModState.Replaced)
@@ -96,11 +74,12 @@ public sealed class ModInstaller
         }
         else if (status.DllName is not null)
         {
-            name = status.DllName;   // already installed (or missing) -> reuse the same name
+            // Already installed (or missing) -> reuse the same name.
+            name = status.DllName;
         }
         else
         {
-            name = preferredName ?? GetFreeNames(game).FirstOrDefault()
+            name = preferredName ?? (GetFreeNames(game) is [var free, ..] ? free : null)
                 ?? throw new InvalidOperationException("Every file name the mod supports is already used in this game folder.");
             if (!SupportedNames.Contains(name, StringComparer.OrdinalIgnoreCase))
                 throw new ArgumentException($"{name} isn't a file name the mod supports.", nameof(preferredName));
@@ -126,10 +105,10 @@ public sealed class ModInstaller
     {
         if (game.ExeFolder is not { } folder) return false;
 
-        var deleted = false;
+        bool deleted = false;
         if (FindInstalledName(folder) is { } name)
         {
-            var path = Path.Combine(folder, name);
+            string path = Path.Combine(folder, name);
             if (File.Exists(path) && _readModVersion(path) is not null)
             {
                 File.Delete(path);
@@ -146,18 +125,18 @@ public sealed class ModInstaller
 
     /// <summary>The mod's own files in a game folder (settings, logs).</summary>
     public static IReadOnlyList<string> FindModDataFiles(string folder) =>
-        ModDataPatterns.SelectMany(pattern => Directory.EnumerateFiles(folder, pattern)).Distinct().ToList();
+        [.. ModDataPatterns.SelectMany(pattern => Directory.EnumerateFiles(folder, pattern)).Distinct()];
 
     /// <summary>The name the mod is installed as in this folder: from our records, or by checking each supported name.</summary>
     private string? FindInstalledName(string folder)
     {
         // settings.json can be changed by any program, and this name decides where the app writes and deletes as admin.
-        var record = _settings.Installs.FirstOrDefault(r => PathUtil.SameFolder(r.Folder, folder));
+        InstallRecord? record = _settings.Installs.FirstOrDefault(r => PathUtil.SameFolder(r.Folder, folder));
         if (record is not null && SupportedNames.Contains(record.DllName, StringComparer.OrdinalIgnoreCase)) return record.DllName;
 
         return SupportedNames.FirstOrDefault(name =>
         {
-            var path = Path.Combine(folder, name);
+            string path = Path.Combine(folder, name);
             return File.Exists(path) && _readModVersion(path) is not null;
         });
     }
@@ -165,7 +144,7 @@ public sealed class ModInstaller
     /// <summary>Game folders come from files any program can change, so a "game" could point here. Linux has no such folder.</summary>
     private static bool IsInWindowsFolder(string folder)
     {
-        var windows = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+        string windows = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
         return windows.Length > 0 && (PathUtil.SameFolder(folder, windows) || PathUtil.IsInside(folder, windows));
     }
 
@@ -175,12 +154,12 @@ public sealed class ModInstaller
     /// <summary>Moves (not deletes) the mod's settings/logs, so nothing is lost if you change your mind.</summary>
     private void MoveModDataAway(Game game, string folder)
     {
-        var files = FindModDataFiles(folder);
+        IReadOnlyList<string> files = FindModDataFiles(folder);
         if (files.Count == 0) return;
 
-        var safeName = string.Concat(game.Name.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c));
-        var target = Path.Combine(_removedFilesFolder, $"{safeName} {DateTime.Now:yyyy-MM-dd HH-mm-ss}");
+        string safeName = string.Concat(game.Name.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c));
+        string target = Path.Combine(_removedFilesFolder, $"{safeName} {DateTime.Now:yyyy-MM-dd HH-mm-ss}");
         Directory.CreateDirectory(target);
-        foreach (var file in files) File.Move(file, Path.Combine(target, Path.GetFileName(file)));
+        foreach (string file in files) File.Move(file, Path.Combine(target, Path.GetFileName(file)));
     }
 }

@@ -4,8 +4,6 @@ using MfgManager.App.Services;
 
 namespace MfgManager.App.Components.Dialogs;
 
-public enum MessageKind { Question, Warning, Error, Information }
-
 /// <summary>Shows a message with Yes and No, or just OK. Closing the window counts as No.</summary>
 public partial class MessageDialog : Window
 {

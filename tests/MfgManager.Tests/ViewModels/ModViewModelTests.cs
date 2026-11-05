@@ -14,7 +14,8 @@ public class ModViewModelTests
         await s.Vm.InitializeAsync();
 
         Assert.Equal(1, GitHubRequests());
-        Assert.True(s.Vm.Mod.ShowUpdateBanner);   // v1.8.0 is newer than nothing
+        // v1.8.0 is newer than nothing.
+        Assert.True(s.Vm.Mod.ShowUpdateBanner);
 
         // Rescanning reuses the start-up answer instead of asking GitHub again.
         await s.Library.RescanCommand.ExecuteAsync();
@@ -23,9 +24,12 @@ public class ModViewModelTests
     }
 
     [Theory]
-    [InlineData("""{"tag_name":"v1.9.0"}""")]                                                       // no assets or page address
-    [InlineData("""{"tag_name":"v1.9.0","html_url":5,"assets":[]}""")]                              // an address that isn't text
-    [InlineData("""{"tag_name":"v1.9.0","html_url":"https://github.com/x","assets":[{"id":1}]}""")] // a download without a name
+    // No assets or page address.
+    [InlineData("""{"tag_name":"v1.9.0"}""")]
+    // An address that isn't text.
+    [InlineData("""{"tag_name":"v1.9.0","html_url":5,"assets":[]}""")]
+    // A download without a name.
+    [InlineData("""{"tag_name":"v1.9.0","html_url":"https://github.com/x","assets":[{"id":1}]}""")]
     public async Task A_strange_answer_from_GitHub_only_adds_a_note(string answer)
     {
         using var s = new AppSetup();
@@ -72,7 +76,8 @@ public class ModViewModelTests
 
         await s.Vm.InitializeAsync();
 
-        Assert.Equal(2, s.Dialogs.Messages.Count);   // the question, then why it failed
+        // The question, then why it failed.
+        Assert.Equal(2, s.Dialogs.Messages.Count);
         Assert.Equal(1, s.Scans);
         Assert.Single(s.Library.Games);
     }
@@ -80,7 +85,8 @@ public class ModViewModelTests
     [Fact]
     public async Task No_internet_only_adds_a_note_to_the_status_line()
     {
-        using var s = new AppSetup();   // the fake web answers 404
+        // The fake web answers 404.
+        using var s = new AppSetup();
 
         await s.Vm.Mod.CheckGitHubOnceAsync();
 
@@ -149,9 +155,10 @@ public class ModViewModelTests
               {"name":"MFGUnlocker-v1.8.0.zip","browser_download_url":"https://example.test/m.zip","digest":"sha256:abc"}]}
             """);
         await s.Vm.Mod.CheckGitHubOnceAsync();
-        var before = s.Vm.Mod.Mod;
+        ModPackage? before = s.Vm.Mod.Mod;
 
-        await s.Vm.Mod.DownloadCommand.ExecuteAsync();   // the fake web has no such file
+        // The fake web has no such file.
+        await s.Vm.Mod.DownloadCommand.ExecuteAsync();
 
         Assert.StartsWith("Download failed", s.Dialogs.Messages.Single());
         Assert.Same(before, s.Vm.Mod.Mod);
@@ -171,36 +178,5 @@ public class ModViewModelTests
         Assert.Equal("MFGUnlocker.dll not found", s.Vm.Mod.VersionText);
         Assert.True(s.Vm.Mod.Missing);
         Assert.Equal("", s.Vm.Mod.PathText);
-    }
-}
-
-public class MainViewModelTests
-{
-    [Fact]
-    public void The_theme_choice_is_saved()
-    {
-        using var s = new AppSetup();
-        var before = s.Saves;
-
-        s.Vm.Theme = MfgManager.Core.Settings.ThemeChoice.Dark;
-
-        Assert.Equal(MfgManager.Core.Settings.ThemeChoice.Dark, s.Settings.Theme);
-        Assert.Equal(before + 1, s.Saves);
-    }
-
-    [Fact]
-    public async Task Start_up_finds_the_mod_scans_and_checks_GitHub_in_that_order()
-    {
-        using var s = new AppSetup();
-        s.WriteRealLookingMod("mods/MFGUnlocker-v2.0.0", "2.0.0");
-        s.ScannerGames.Add(s.MakeGame("Alpha", MfgManager.Core.Models.Launcher.Steam));
-        s.Web.Add("https://api.github.com/", """{"tag_name":"v2.0.0","html_url":"https://github.com/x","assets":[]}""");
-
-        await s.Vm.InitializeAsync();
-
-        Assert.Equal(new Version(2, 0, 0), s.Vm.Mod.Mod?.Version);
-        Assert.Equal(new Version(2, 0, 0), s.Library.Mod?.Version);
-        Assert.Single(s.Library.Games);
-        Assert.False(s.Vm.Mod.ShowUpdateBanner);   // GitHub has the same version you have
     }
 }

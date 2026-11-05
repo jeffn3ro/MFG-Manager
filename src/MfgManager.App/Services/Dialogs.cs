@@ -22,8 +22,8 @@ public sealed class Dialogs(Window owner) : IDialogs
 
     public async Task<string?> PickFileAsync(string title, string typeName, string pattern, string? startFolder = null)
     {
-        var storage = owner.StorageProvider;
-        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
+        IStorageProvider storage = owner.StorageProvider;
+        IReadOnlyList<IStorageFile> files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
         {
             Title = title,
             AllowMultiple = false,

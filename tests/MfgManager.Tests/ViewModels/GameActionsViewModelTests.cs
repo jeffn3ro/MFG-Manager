@@ -11,7 +11,7 @@ public class GameActionsViewModelTests
     public async Task Install_and_remove_change_the_game_folder()
     {
         using var s = new AppSetup();
-        var game = s.AddGame("Alpha", Launcher.Steam);
+        GameViewModel game = s.AddGame("Alpha", Launcher.Steam);
         s.Library.SelectedGame = game;
 
         await s.Actions.InstallCommand.ExecuteAsync();
@@ -25,14 +25,15 @@ public class GameActionsViewModelTests
 
         Assert.False(File.Exists(DllIn(game)));
         Assert.Null(game.Badge);
-        Assert.Same(game, s.Library.SelectedGame);   // the details panel keeps showing the same game
+        // The details panel keeps showing the same game.
+        Assert.Same(game, s.Library.SelectedGame);
     }
 
     [Fact]
     public async Task The_install_name_you_pick_is_used()
     {
         using var s = new AppSetup();
-        var game = s.AddGame("Alpha", Launcher.Steam);
+        GameViewModel game = s.AddGame("Alpha", Launcher.Steam);
         s.Library.SelectedGame = game;
         game.SelectedInstallName = "winmm.dll";
 
@@ -46,12 +47,13 @@ public class GameActionsViewModelTests
     public async Task Anti_cheat_game_warns_first_and_only_installs_after_yes()
     {
         using var s = new AppSetup();
-        var game = s.AddGame("Shooter", Launcher.Steam, antiCheat: "Easy Anti-Cheat");
+        GameViewModel game = s.AddGame("Shooter", Launcher.Steam, antiCheat: "Easy Anti-Cheat");
         s.Library.SelectedGame = game;
 
-        s.Dialogs.Answer = false;   // "No, don't install"
+        // "No, don't install".
+        s.Dialogs.Answer = false;
         await s.Actions.InstallCommand.ExecuteAsync();
-        var warning = s.Dialogs.Messages.Single();
+        string warning = s.Dialogs.Messages.Single();
         Assert.Contains("Easy Anti-Cheat", warning);
         Assert.Contains("ban your account", warning);
         Assert.False(game.CanRemove);
@@ -67,7 +69,7 @@ public class GameActionsViewModelTests
     public async Task A_game_without_frame_gen_asks_first()
     {
         using var s = new AppSetup();
-        var game = s.AddGame("Plain", Launcher.Steam, frameGen: false);
+        GameViewModel game = s.AddGame("Plain", Launcher.Steam, frameGen: false);
         s.Library.SelectedGame = game;
         s.Dialogs.Answer = false;
 
@@ -81,7 +83,7 @@ public class GameActionsViewModelTests
     public async Task A_running_game_is_not_changed()
     {
         using var s = new AppSetup();
-        var game = s.AddGame("Alpha", Launcher.Steam);
+        GameViewModel game = s.AddGame("Alpha", Launcher.Steam);
         s.Library.SelectedGame = game;
         s.RunningExes.Add(game.Game.Exe!);
 
@@ -104,10 +106,10 @@ public class GameActionsViewModelTests
     public async Task Revert_all_lists_the_games_and_removes_the_mod_from_each()
     {
         using var s = new AppSetup();
-        var alpha = s.AddGame("Alpha", Launcher.Steam);
-        var beta = s.AddGame("Beta", Launcher.Steam);
+        GameViewModel alpha = s.AddGame("Alpha", Launcher.Steam);
+        GameViewModel beta = s.AddGame("Beta", Launcher.Steam);
         s.AddGame("Untouched", Launcher.Steam);
-        foreach (var game in new[] { alpha, beta })
+        foreach (GameViewModel game in new[] { alpha, beta })
         {
             s.Library.SelectedGame = game;
             await s.Actions.InstallCommand.ExecuteAsync();
@@ -117,7 +119,7 @@ public class GameActionsViewModelTests
 
         Assert.False(File.Exists(DllIn(alpha)));
         Assert.False(File.Exists(DllIn(beta)));
-        var question = s.Dialogs.Messages.Last();
+        string question = s.Dialogs.Messages.Last();
         Assert.Contains("Alpha", question);
         Assert.Contains("Beta", question);
         Assert.DoesNotContain("Untouched", question);
@@ -128,10 +130,10 @@ public class GameActionsViewModelTests
     public async Task Removing_can_also_move_the_mods_settings_and_logs_away()
     {
         using var s = new AppSetup();
-        var game = s.AddGame("Alpha", Launcher.Steam);
+        GameViewModel game = s.AddGame("Alpha", Launcher.Steam);
         s.Library.SelectedGame = game;
         await s.Actions.InstallCommand.ExecuteAsync();
-        var log = Path.Combine(game.Game.ExeFolder!, "RTXMFG-log.txt");
+        string log = Path.Combine(game.Game.ExeFolder!, "RTXMFG-log.txt");
         File.WriteAllText(log, "log");
 
         s.Actions.RemoveModData = true;
@@ -144,11 +146,12 @@ public class GameActionsViewModelTests
     public async Task A_newer_mod_makes_installed_games_show_update_and_keep_their_file_name()
     {
         using var s = new AppSetup();
-        var game = s.AddGame("Alpha", Launcher.Steam);
+        GameViewModel game = s.AddGame("Alpha", Launcher.Steam);
         s.Library.SelectedGame = game;
         await s.Actions.InstallCommand.ExecuteAsync();
 
-        s.Vm.Mod.Mod = FakeMod.Create(s.Temp, "1.8.0");   // the app re-checks every game when the mod changes
+        // The app re-checks every game when the mod changes.
+        s.Vm.Mod.Mod = FakeMod.Create(s.Temp, "1.8.0");
 
         Assert.Equal("Update", game.Badge);
         Assert.True(game.BadgeIsUpdate);
@@ -160,7 +163,7 @@ public class GameActionsViewModelTests
     public async Task Change_exe_is_refused_while_the_mod_is_installed()
     {
         using var s = new AppSetup();
-        var game = s.AddGame("Alpha", Launcher.Steam);
+        GameViewModel game = s.AddGame("Alpha", Launcher.Steam);
         s.Library.SelectedGame = game;
         await s.Actions.InstallCommand.ExecuteAsync();
         s.Dialogs.PickedFile = s.Temp.File("elsewhere/Other.exe", "game");
@@ -175,9 +178,9 @@ public class GameActionsViewModelTests
     public async Task Change_exe_is_remembered()
     {
         using var s = new AppSetup();
-        var game = s.AddGame("Alpha", Launcher.Steam);
+        GameViewModel game = s.AddGame("Alpha", Launcher.Steam);
         s.Library.SelectedGame = game;
-        var other = s.Temp.File("games/Alpha/bin/Other.exe", "game");
+        string other = s.Temp.File("games/Alpha/bin/Other.exe", "game");
         s.Dialogs.PickedFile = other;
 
         await s.Actions.ChangeExeCommand.ExecuteAsync();
@@ -190,9 +193,9 @@ public class GameActionsViewModelTests
     public async Task Change_exe_refuses_a_program_outside_the_games_folder()
     {
         using var s = new AppSetup();
-        var game = s.AddGame("Alpha", Launcher.Steam);
+        GameViewModel game = s.AddGame("Alpha", Launcher.Steam);
         s.Library.SelectedGame = game;
-        var before = game.ExeText;
+        string before = game.ExeText;
         s.Dialogs.PickedFile = s.Temp.File("elsewhere/Other.exe", "game");
 
         await s.Actions.ChangeExeCommand.ExecuteAsync();
@@ -206,7 +209,7 @@ public class GameActionsViewModelTests
     public async Task A_taken_file_name_shows_the_reason_and_changes_nothing()
     {
         using var s = new AppSetup();
-        var game = s.AddGame("Alpha", Launcher.Steam);
+        GameViewModel game = s.AddGame("Alpha", Launcher.Steam);
         s.Library.SelectedGame = game;
         game.SelectedInstallName = "dxgi.dll";
         s.Temp.File("games/Alpha/dxgi.dll", "the game's own file");
@@ -223,14 +226,15 @@ public class GameActionsViewModelTests
     public async Task Buttons_enable_and_disable_as_things_change()
     {
         using var s = new AppSetup();
-        var actions = s.Actions;
-        Assert.False(actions.InstallCommand.CanExecute());   // nothing selected
+        GameActionsViewModel actions = s.Actions;
+        // Nothing selected.
+        Assert.False(actions.InstallCommand.CanExecute());
         Assert.False(actions.RemoveCommand.CanExecute());
         Assert.False(actions.RevertAllCommand.CanExecute());
         Assert.False(actions.ChangeExeCommand.CanExecute());
         Assert.False(actions.OpenFolderCommand.CanExecute());
 
-        var game = s.AddGame("Alpha", Launcher.Steam);
+        GameViewModel game = s.AddGame("Alpha", Launcher.Steam);
         s.Library.SelectedGame = game;
         Assert.True(actions.InstallCommand.CanExecute());
         Assert.True(actions.ChangeExeCommand.CanExecute());
@@ -242,17 +246,19 @@ public class GameActionsViewModelTests
         Assert.True(actions.RevertAllCommand.CanExecute());
 
         s.Vm.Mod.Mod = null;
-        Assert.False(actions.InstallCommand.CanExecute());   // no DLL to install
+        // No DLL to install.
+        Assert.False(actions.InstallCommand.CanExecute());
     }
 
     [Fact]
     public async Task The_window_is_told_each_time_a_button_should_recheck_itself()
     {
         using var s = new AppSetup();
-        s.AddGame("Alpha", Launcher.Steam);   // the first game gets selected by itself
-        var game = s.AddGame("Beta", Launcher.Steam);
-        var removeSignals = 0;
-        var installSignals = 0;
+        // The first game gets selected by itself.
+        s.AddGame("Alpha", Launcher.Steam);
+        GameViewModel game = s.AddGame("Beta", Launcher.Steam);
+        int removeSignals = 0;
+        int installSignals = 0;
         s.Actions.RemoveCommand.CanExecuteChanged += (_, _) => removeSignals++;
         s.Actions.InstallCommand.CanExecuteChanged += (_, _) => installSignals++;
 
@@ -262,7 +268,8 @@ public class GameActionsViewModelTests
 
         removeSignals = 0;
         await s.Actions.InstallCommand.ExecuteAsync();
-        Assert.True(removeSignals > 0);   // Remove must wake up after an install
+        // Remove must wake up after an install.
+        Assert.True(removeSignals > 0);
     }
 
     [Fact]
@@ -271,7 +278,7 @@ public class GameActionsViewModelTests
         var gate = new TaskCompletionSource();
         var command = new RelayCommand(() => gate.Task);
 
-        var running = command.ExecuteAsync();
+        Task running = command.ExecuteAsync();
         Assert.False(command.CanExecute());
 
         gate.SetResult();
@@ -298,7 +305,8 @@ public class GameActionsViewModelTests
         using var s = new AppSetup();
         s.Library.SelectedGame = s.AddGame("Alpha", Launcher.Steam);
 
-        await s.Actions.CopyLaunchOptionCommand.ExecuteAsync();   // the mod isn't installed yet
+        // The mod isn't installed yet.
+        await s.Actions.CopyLaunchOptionCommand.ExecuteAsync();
 
         Assert.Null(s.Dialogs.Copied);
     }

@@ -5,6 +5,7 @@ using MfgManager.App.Services;
 using MfgManager.Core;
 using MfgManager.Core.Collections;
 using MfgManager.Core.Mod;
+using MfgManager.Core.Models;
 using MfgManager.Core.Scanning;
 using MfgManager.Core.Scanning.Launchers;
 using MfgManager.Core.Settings;
@@ -28,14 +29,6 @@ public sealed class LibraryViewModel : ObservableObject
     private readonly SteamStore _store;
     private readonly IDialogs _dialogs;
     private readonly StatusViewModel _status;
-
-    private GameViewModel? _selectedGame;
-    private string _searchText = "";
-    private string _launcherFilter = AllLaunchers;
-    private string _drmFilter = AnyDrm;
-    private string _groupBy = GroupByLauncher;
-    private bool _onlyFrameGen = true;
-    private int _statusVersion;
 
     public LibraryViewModel(AppSettings settings, Action saveSettings, GameScanner scanner, ModInstaller installer,
         SteamStore store, IDialogs dialogs, StatusViewModel status)
@@ -80,8 +73,8 @@ public sealed class LibraryViewModel : ObservableObject
     /// <summary>Changes whenever a game's mod status was re-read, so buttons can check themselves again.</summary>
     public int StatusVersion
     {
-        get => _statusVersion;
-        private set => SetProperty(ref _statusVersion, value);
+        get;
+        private set => SetProperty(ref field, value);
     }
 
     /// <summary>The mod that's currently in use. Kept here so a rescan can compare each game against it.</summary>
@@ -89,43 +82,46 @@ public sealed class LibraryViewModel : ObservableObject
 
     public GameViewModel? SelectedGame
     {
-        get => _selectedGame;
+        get;
         set
         {
-            var previous = _selectedGame;
-            if (!SetProperty(ref _selectedGame, value)) return;
-            if (previous is not null) previous.IsSelected = false;
-            if (value is not null) value.IsSelected = true;
+            GameViewModel? previous = field;
+            if (!SetProperty(ref field, value)) return;
+            previous?.IsSelected = false;
+            value?.IsSelected = true;
         }
     }
 
     public string SearchText
     {
-        get => _searchText;
-        set { if (SetProperty(ref _searchText, value ?? "")) FiltersChanged(); }
-    }
+        get;
+        set
+        {
+            if (SetProperty(ref field, value ?? "")) FiltersChanged();
+        }
+    } = "";
 
     public string LauncherFilter
     {
-        get => _launcherFilter;
+        get;
         set
         {
-            if (!SetProperty(ref _launcherFilter, value ?? AllLaunchers)) return;
+            if (!SetProperty(ref field, value ?? AllLaunchers)) return;
             OnPropertyChanged(nameof(SelectedLauncherOption));
             FiltersChanged();
         }
-    }
+    } = AllLaunchers;
 
     public string DrmFilter
     {
-        get => _drmFilter;
+        get;
         set
         {
-            if (!SetProperty(ref _drmFilter, value ?? AnyDrm)) return;
+            if (!SetProperty(ref field, value ?? AnyDrm)) return;
             OnPropertyChanged(nameof(SelectedDrmOption));
             FiltersChanged();
         }
-    }
+    } = AnyDrm;
 
     // The sidebar lists work with options; a list sends null when its chosen entry disappears, which means "show all".
     public FilterOption? SelectedLauncherOption
@@ -142,15 +138,21 @@ public sealed class LibraryViewModel : ObservableObject
 
     public string GroupBy
     {
-        get => _groupBy;
-        set { if (value is not null && SetProperty(ref _groupBy, value)) ApplyGrouping(); }
-    }
+        get;
+        set
+        {
+            if (value is not null && SetProperty(ref field, value)) ApplyGrouping();
+        }
+    } = GroupByLauncher;
 
     public bool OnlyFrameGen
     {
-        get => _onlyFrameGen;
-        set { if (SetProperty(ref _onlyFrameGen, value)) FiltersChanged(); }
-    }
+        get;
+        set
+        {
+            if (SetProperty(ref field, value)) FiltersChanged();
+        }
+    } = true;
 
     /// <summary>"1 game" or "3 games".</summary>
     public static string CountOfGames(int count) => count == 1 ? "1 game" : $"{count} games";
@@ -164,17 +166,18 @@ public sealed class LibraryViewModel : ObservableObject
         try
         {
             var progress = new Progress<string>(text => _status.Text = text);
-            var games = await Task.Run(() => _scanner.Scan(progress));   // Task.Run keeps the window responsive
+            // Task.Run keeps the window responsive.
+            IReadOnlyList<Game> games = await Task.Run(() => _scanner.Scan(progress));
 
-            var selectedFolder = SelectedGame?.Folder;
+            string? selectedFolder = SelectedGame?.Folder;
             using (View.DeferRefresh())
             {
                 Games.Clear();
-                foreach (var game in games) Games.Add(new GameViewModel(game, select => SelectedGame = select));
+                foreach (Game game in games) Games.Add(new GameViewModel(game, select => SelectedGame = select));
             }
             RefreshStatuses();
             RefreshFilterOptions();
-            SelectedGame = Games.FirstOrDefault(g => g.Folder == selectedFolder) ?? View.Items.FirstOrDefault();
+            SelectedGame = Games.FirstOrDefault(g => g.Folder == selectedFolder) ?? FirstCard();
 
             _status.Text = $"Found {Games.Count} games, {Games.Count(g => g.HasFrameGen)} with DLSS Frame Generation.";
         }
@@ -188,8 +191,8 @@ public sealed class LibraryViewModel : ObservableObject
     /// <summary>Cover art and store DRM info for these games. Frame-gen games first, since those are the ones you see.</summary>
     private async Task LoadStoreInfoAsync(IEnumerable<GameViewModel> games)
     {
-        var steamFolder = SteamLibrary.FindSteamFolder() is { } folder ? PathUtil.Normalize(folder) : null;
-        foreach (var game in games.OrderByDescending(g => g.HasFrameGen).ToList())
+        string? steamFolder = SteamLibrary.FindSteamFolder() is { } folder ? PathUtil.Normalize(folder) : null;
+        foreach (GameViewModel game in games.OrderByDescending(g => g.HasFrameGen).ToList())
         {
             try
             {
@@ -203,7 +206,8 @@ public sealed class LibraryViewModel : ObservableObject
         }
         try
         {
-            await _store.SaveCacheAsync();   // one write for the whole batch (none if nothing was new)
+            // One write for the whole batch (none if nothing was new).
+            await _store.SaveCacheAsync();
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -215,17 +219,17 @@ public sealed class LibraryViewModel : ObservableObject
 
     private async Task AddGameAsync()
     {
-        var exe = await _dialogs.PickFileAsync("Pick the game's .exe", "Programs", "*.exe");
+        string? exe = await _dialogs.PickFileAsync("Pick the game's .exe", "Programs", "*.exe");
         if (exe is null) return;
 
-        var game = GameScanner.ManualGame(exe);
+        Game game = GameScanner.ManualGame(exe);
         if (!_settings.ManualGames.Contains(exe, PathUtil.Comparer)) _settings.ManualGames.Add(exe);
         _settings.ExeOverrides[game.Folder] = exe;
         _saveSettings();
 
         // Only this game is checked; the rest of the list is still up to date, so no full rescan.
         // If the scan already found this folder (e.g. a Steam game), that card is updated instead of adding a second one.
-        var card = Games.FirstOrDefault(g => PathUtil.SameFolder(g.Folder, game.Folder));
+        GameViewModel? card = Games.FirstOrDefault(g => PathUtil.SameFolder(g.Folder, game.Folder));
         _status.IsBusy = true;
         try
         {
@@ -243,7 +247,8 @@ public sealed class LibraryViewModel : ObservableObject
 
         RefreshStatuses();
         RefreshFilterOptions();
-        if (!card.HasFrameGen) OnlyFrameGen = false;   // otherwise the filter would hide it
+        // Otherwise the filter would hide it.
+        if (!card.HasFrameGen) OnlyFrameGen = false;
         SelectedGame = card;
         _status.Text = $"Added {card.Name}.";
         await LoadStoreInfoAsync([card]);
@@ -254,7 +259,7 @@ public sealed class LibraryViewModel : ObservableObject
     /// <summary>Re-reads every game's mod status. Call it after anything that changes game folders or the mod.</summary>
     public void RefreshStatuses()
     {
-        foreach (var game in Games) game.Refresh(_installer, Mod);
+        foreach (GameViewModel game in Games) game.Refresh(_installer, Mod);
         View.Refresh();
         StatusVersion++;
     }
@@ -285,9 +290,9 @@ public sealed class LibraryViewModel : ObservableObject
     /// <summary>Each number shows how many games you'd see if you picked that line, with your other filters still on.</summary>
     private void UpdateOptionCounts()
     {
-        foreach (var option in LauncherOptions)
+        foreach (FilterOption option in LauncherOptions)
             option.Count = Games.Count(g => Passes(g, launcher: option.Name));
-        foreach (var option in DrmOptions)
+        foreach (FilterOption option in DrmOptions)
             option.Count = Games.Count(g => Passes(g, drm: option.Name));
     }
 
@@ -322,6 +327,8 @@ public sealed class LibraryViewModel : ObservableObject
         OnPropertyChanged(nameof(ShowEmptyMessage));
 
         // If the filters hid the selected game, move on to the first one you can see.
-        if (SelectedGame is null || !View.Items.Contains(SelectedGame)) SelectedGame = View.Items.FirstOrDefault();
+        if (SelectedGame is null || !View.Items.Contains(SelectedGame)) SelectedGame = FirstCard();
     }
+
+    private GameViewModel? FirstCard() => View.Items.Count > 0 ? View.Items[0] : null;
 }

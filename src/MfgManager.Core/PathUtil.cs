@@ -16,7 +16,7 @@ public static class PathUtil
     /// <summary>True when <paramref name="path"/> is somewhere inside <paramref name="folder"/> ("..\" tricks don't count).</summary>
     public static bool IsInside(string path, string folder)
     {
-        var root = Normalize(folder);
+        string root = Normalize(folder);
         if (!Path.EndsInDirectorySeparator(root)) root += Path.DirectorySeparatorChar;
         return Path.GetFullPath(path).StartsWith(root, Comparison);
     }

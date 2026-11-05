@@ -37,9 +37,9 @@ public class ScanRulesTests
     private static async Task DoEverythingExceptRescan(AppSetup s)
     {
         s.Vm.Mod.Mod = FakeMod.Create(s.Temp, "1.7.0");
-        var alpha = s.Library.Games.Single(g => g.Name == "Alpha");
+        GameViewModel alpha = s.Library.Games.Single(g => g.Name == "Alpha");
 
-        // Looking around
+        // Looking around.
         s.Library.SelectedGame = s.Library.Games.Single(g => g.Name == "Beta");
         s.Library.SearchText = "a";
         s.Library.SearchText = "";
@@ -81,8 +81,9 @@ public class ScanRulesTests
     [Fact]
     public async Task Games_are_scanned_once_at_start_and_after_that_only_by_Rescan()
     {
-        using var s = AppWithTwoGames();
-        Assert.Equal(0, s.Scans);   // creating the app isn't starting it
+        using AppSetup s = AppWithTwoGames();
+        // Creating the app isn't starting it.
+        Assert.Equal(0, s.Scans);
 
         await s.Vm.InitializeAsync();
         Assert.Equal(1, s.Scans);
@@ -100,7 +101,7 @@ public class ScanRulesTests
     [Fact]
     public async Task GitHub_is_only_asked_at_start_whatever_you_do_afterwards()
     {
-        using var s = AppWithTwoGames();
+        using AppSetup s = AppWithTwoGames();
         s.Web.Add("https://api.github.com/", """{"tag_name":"v1.9.0","html_url":"https://github.com/x","assets":[]}""");
         int Checks() => s.Web.Requests.Count(url => url.Contains(GitHubCheck));
 
@@ -116,7 +117,7 @@ public class ScanRulesTests
     [Fact]
     public async Task Downloads_is_only_searched_at_start_not_by_Rescan()
     {
-        using var s = AppWithTwoGames();
+        using AppSetup s = AppWithTwoGames();
         await s.Vm.InitializeAsync();
         Assert.Empty(s.Dialogs.Messages);
 
@@ -132,12 +133,13 @@ public class ScanRulesTests
     [Fact]
     public async Task Rescan_doesnt_ask_Steam_again_about_a_game_it_already_answered_for()
     {
-        using var s = AppWithTwoGames();
+        using AppSetup s = AppWithTwoGames();
         s.Web.Add("https://store.steampowered.com/api/storesearch", """{"items":[]}""");
         int SteamRequests() => s.Web.Requests.Count(url => url.Contains("steampowered"));
 
         await s.Vm.InitializeAsync();
-        Assert.Equal(2, SteamRequests());   // one search per game, both "not found"
+        // One search per game, both "not found".
+        Assert.Equal(2, SteamRequests());
 
         await s.Library.RescanCommand.ExecuteAsync();
         Assert.Equal(2, SteamRequests());
@@ -146,14 +148,14 @@ public class ScanRulesTests
     [Fact]
     public Task Using_the_real_window_with_the_mouse_never_starts_a_scan() => TestApp.Run(async () =>
     {
-        using var s = AppWithTwoGames();
+        using AppSetup s = AppWithTwoGames();
         await s.Vm.InitializeAsync();
-        var window = Stage.Show(new MainWindow(), "Dark", 1280, 820, s.Vm);
+        Window window = Stage.Show(new MainWindow(), "Dark", 1280, 820, s.Vm);
 
         void Click(Control control)
         {
             var middle = new Point(control.Bounds.Width / 2, control.Bounds.Height / 2);
-            var point = control.TranslatePoint(middle, window)!.Value;
+            Point point = control.TranslatePoint(middle, window)!.Value;
             window.MouseMove(point);
             window.MouseDown(point, MouseButton.Left);
             window.MouseUp(point, MouseButton.Left);
@@ -161,14 +163,15 @@ public class ScanRulesTests
         }
         Button ButtonNamed(string text) => window.GetVisualDescendants().OfType<Button>().Single(b => (b.Content as string) == text);
 
-        var beta = window.GetVisualDescendants().OfType<GameCard>().Single(c => ((GameViewModel)c.DataContext!).Name == "Beta");
+        GameCard beta = window.GetVisualDescendants().OfType<GameCard>().Single(c => ((GameViewModel)c.DataContext!).Name == "Beta");
         Click(beta.GetVisualDescendants().OfType<Button>().Single());
         Assert.Equal("Beta", s.Library.SelectedGame?.Name);
 
         Click(window.GetVisualDescendants().OfType<CheckBox>().First(c => (c.Content as string) == "Only frame-gen games"));
         Assert.False(s.Library.OnlyFrameGen);
 
-        Click(window.GetVisualDescendants().OfType<ListBoxItem>().ElementAt(1));   // a launcher in the sidebar
+        // A launcher in the sidebar.
+        Click(window.GetVisualDescendants().OfType<ListBoxItem>().ElementAt(1));
         window.GetVisualDescendants().OfType<TextBox>().Single(box => box.PlaceholderText == "Search games").Text = "a";
         Stage.Settle();
 
@@ -183,7 +186,7 @@ public class ScanRulesTests
 
         // And the real Rescan button starts exactly one.
         Click(ButtonNamed("Rescan"));
-        for (var i = 0; i < 200 && (s.Scans < 2 || s.Vm.Status.IsBusy); i++)
+        for (int i = 0; i < 200 && (s.Scans < 2 || s.Vm.Status.IsBusy); i++)
         {
             await Task.Delay(10);
             Stage.Settle();
@@ -206,21 +209,26 @@ public class ScanRulesTests
 
     /// <summary>Which files call a method. Each call counts once, and the method's own definition doesn't count.</summary>
     private static List<string> FilesCalling(string method) =>
-        SourceFiles("*.cs")
+        [.. SourceFiles("*.cs")
             .SelectMany(file => File.ReadLines(file)
-                .Where(line => Regex.IsMatch(line, $@"\b{method}\(") && !line.TrimStart().StartsWith("public ") && !line.TrimStart().StartsWith("///"))
+                .Where(line => Regex.IsMatch(line, $@"\b{method}\(") && !line.TrimStart().StartsWith("public ", StringComparison.Ordinal) && !line.TrimStart().StartsWith("///", StringComparison.Ordinal))
                 .Select(_ => Path.GetFileName(file)))
-            .Order()
-            .ToList();
+            .Order()];
 
     /// <summary>A new line in this list has to be a deliberate decision, because it means a new way to start a scan.</summary>
     [Theory]
-    [InlineData("InitializeAsync", "App.axaml.cs")]                                // the window opened
-    [InlineData("ScanAsync", "LibraryViewModel.cs", "MainViewModel.cs")]           // Rescan, and the start
-    [InlineData("Scan", "LibraryViewModel.cs")]                                    // only through ScanAsync
-    [InlineData("FindAsync", "MainViewModel.cs")]                                  // Mods and Downloads, at the start
-    [InlineData("CheckGitHubOnceAsync", "MainViewModel.cs")]                       // at the start
-    [InlineData("GetLatestAsync", "ModViewModel.cs")]                              // only through CheckGitHubOnceAsync
+    // The window opened.
+    [InlineData("InitializeAsync", "App.axaml.cs")]
+    // Rescan, and the start.
+    [InlineData("ScanAsync", "LibraryViewModel.cs", "MainViewModel.cs")]
+    // Only through ScanAsync.
+    [InlineData("Scan", "LibraryViewModel.cs")]
+    // Mods and Downloads, at the start.
+    [InlineData("FindAsync", "MainViewModel.cs")]
+    // At the start.
+    [InlineData("CheckGitHubOnceAsync", "MainViewModel.cs")]
+    // Only through CheckGitHubOnceAsync.
+    [InlineData("GetLatestAsync", "ModViewModel.cs")]
     public void Scans_can_only_be_started_from_the_known_places(string method, params string[] expectedFiles)
     {
         Assert.Equal(expectedFiles.Order(), FilesCalling(method));
@@ -229,16 +237,16 @@ public class ScanRulesTests
     [Fact]
     public void Only_the_Rescan_button_starts_a_rescan()
     {
-        var uses = SourceFiles("*.axaml").Where(file => File.ReadAllText(file).Contains("RescanCommand")).Select(Path.GetFileName);
+        IEnumerable<string?> uses = SourceFiles("*.axaml").Where(file => File.ReadAllText(file).Contains("RescanCommand")).Select(Path.GetFileName);
         Assert.Equal("LibraryToolbar.axaml", Assert.Single(uses));
     }
 
     [Fact]
     public void Nothing_in_the_app_runs_on_a_timer_or_watches_for_changes()
     {
-        var banned = new Regex(@"FileSystemWatcher|DispatcherTimer|PeriodicTimer|System\.Timers|Threading\.Timer|new Timer\(|Task\.Delay|Thread\.Sleep|BackgroundService|\bActivated\b|\bGotFocus\b");
+        var banned = new Regex("""FileSystemWatcher|DispatcherTimer|PeriodicTimer|System\.Timers|Threading\.Timer|new Timer\(|Task\.Delay|Thread\.Sleep|BackgroundService|\bActivated\b|\bGotFocus\b""");
 
-        var found = SourceFiles("*.cs").SelectMany(file => File.ReadLines(file)
+        IEnumerable<string> found = SourceFiles("*.cs").SelectMany(file => File.ReadLines(file)
             .Where(line => banned.IsMatch(line))
             .Select(line => $"{Path.GetFileName(file)}: {line.Trim()}"));
 

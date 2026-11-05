@@ -15,6 +15,8 @@
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <!-- The app has no translations or dates to format, so it doesn't need the language library (libicu on Linux). -->
     <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- Only the code .NET generates for WindowFrame's calls into Windows needs this. No code written here is unsafe. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
     <!-- app.manifest makes Windows ask for admin rights on start. Game folders under Program Files need them.
          Linux has no such file: games are in your own folders there, and the app runs as you.
