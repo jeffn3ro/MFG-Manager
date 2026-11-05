@@ -1,0 +1,41 @@
+<!-- The wall of game covers, in groups. The groups come from LibraryViewModel.View (a GroupedView). -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MfgManager.App.ViewModels"
+             xmlns:library="using:MfgManager.App.Components.Library"
+             xmlns:collections="using:MfgManager.Core.Collections"
+             x:Class="MfgManager.App.Components.Library.CoverWall"
+             x:DataType="vm:LibraryViewModel">
+  <Grid>
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+      <ItemsControl ItemsSource="{Binding View.Groups}" Margin="12,0,12,12">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="{x:Type collections:ViewGroup, x:TypeArguments=vm:GameViewModel}">
+            <StackPanel>
+              <TextBlock Classes="heading" Margin="6,12,0,4" IsVisible="{Binding HasName}">
+                <Run Text="{Binding Name}" />
+                <Run Text="{Binding Count, StringFormat='({0})'}" Foreground="{DynamicResource TextSecondaryBrush}" />
+              </TextBlock>
+              <ItemsControl ItemsSource="{Binding Items}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <WrapPanel />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:GameViewModel">
+                    <library:GameCard Margin="2" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+
+    <TextBlock Classes="secondary" Text="No games to show. Untick &quot;Only frame-gen games&quot; or change the filters."
+               HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" Margin="40"
+               IsVisible="{Binding ShowEmptyMessage}" />
+  </Grid>
+</UserControl>

@@ -1,0 +1,243 @@
+<!--
+    Every colour the app uses, for dark and light mode. Change a colour here and the whole app follows.
+    Look: near-black with a gold-to-lime accent, taken from the logo. Light mode is a warm off-white.
+
+    Every text colour must stay easy to read on the surfaces it's used on. ThemeContrastTests checks
+    this for both modes, so a colour that's too faint makes the tests fail.
+-->
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <ResourceDictionary.ThemeDictionaries>
+
+    <ResourceDictionary x:Key="Dark">
+      <!-- surfaces, darkest to lightest -->
+      <SolidColorBrush x:Key="WindowBrush" Color="#0E0F11" />
+      <SolidColorBrush x:Key="PanelBrush" Color="#15171A" />
+      <SolidColorBrush x:Key="RaisedBrush" Color="#1D2024" />
+      <SolidColorBrush x:Key="HoverBrush" Color="#272B30" />
+      <SolidColorBrush x:Key="SelectedBrush" Color="#2A3318" />
+      <SolidColorBrush x:Key="LineBrush" Color="#30343A" />
+
+      <!-- text -->
+      <SolidColorBrush x:Key="TextBrush" Color="#F3F4EF" />
+      <SolidColorBrush x:Key="TextSecondaryBrush" Color="#BEC2BA" />
+      <SolidColorBrush x:Key="TextMutedBrush" Color="#A3A89E" />
+      <SolidColorBrush x:Key="AccentTextBrush" Color="#BEF264" />
+      <SolidColorBrush x:Key="FocusBrush" Color="#BEF264" />
+
+      <!-- text you've selected in a box -->
+      <SolidColorBrush x:Key="TextSelectionBrush" Color="#A3E635" />
+      <SolidColorBrush x:Key="OnTextSelectionBrush" Color="#14160F" />
+
+      <!-- the disabled main button -->
+      <SolidColorBrush x:Key="AccentDisabledBrush" Color="#2A2D31" />
+      <SolidColorBrush x:Key="OnAccentDisabledBrush" Color="#A3A89E" />
+
+      <!-- small labels and banners: a background and the text that goes on it -->
+      <SolidColorBrush x:Key="NeutralBackBrush" Color="#33373D" />
+      <SolidColorBrush x:Key="NeutralTextBrush" Color="#E3E5DF" />
+      <SolidColorBrush x:Key="SuccessBackBrush" Color="#1F4D1A" />
+      <SolidColorBrush x:Key="SuccessTextBrush" Color="#D2F7A8" />
+      <SolidColorBrush x:Key="InfoBackBrush" Color="#163B63" />
+      <SolidColorBrush x:Key="InfoTextBrush" Color="#D2E4FC" />
+      <SolidColorBrush x:Key="WarningBackBrush" Color="#5A3D07" />
+      <SolidColorBrush x:Key="WarningTextBrush" Color="#FDE9A6" />
+      <SolidColorBrush x:Key="DangerBackBrush" Color="#5F1A1A" />
+      <SolidColorBrush x:Key="DangerTextBrush" Color="#FBD5D5" />
+
+      <!-- Avalonia's own controls use these names -->
+      <SolidColorBrush x:Key="ButtonBackground" Color="#1D2024" />
+      <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#272B30" />
+      <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#30343A" />
+      <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="#17191C" />
+      <SolidColorBrush x:Key="ButtonForeground" Color="#F3F4EF" />
+      <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#F3F4EF" />
+      <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#F3F4EF" />
+      <SolidColorBrush x:Key="ButtonForegroundDisabled" Color="#A3A89E" />
+      <SolidColorBrush x:Key="ButtonBorderBrush" Color="#30343A" />
+      <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#4A4F56" />
+      <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="#4A4F56" />
+      <SolidColorBrush x:Key="ButtonBorderBrushDisabled" Color="#26292D" />
+
+      <SolidColorBrush x:Key="TextControlBackground" Color="#1D2024" />
+      <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="#272B30" />
+      <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="#15171A" />
+      <SolidColorBrush x:Key="TextControlForeground" Color="#F3F4EF" />
+      <SolidColorBrush x:Key="TextControlForegroundPointerOver" Color="#F3F4EF" />
+      <SolidColorBrush x:Key="TextControlForegroundFocused" Color="#F3F4EF" />
+      <SolidColorBrush x:Key="TextControlPlaceholderForeground" Color="#A3A89E" />
+      <SolidColorBrush x:Key="TextControlPlaceholderForegroundPointerOver" Color="#BEC2BA" />
+      <SolidColorBrush x:Key="TextControlPlaceholderForegroundFocused" Color="#A3A89E" />
+      <SolidColorBrush x:Key="TextControlBorderBrush" Color="#30343A" />
+      <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="#4A4F56" />
+      <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="#BEF264" />
+
+      <SolidColorBrush x:Key="ComboBoxBackground" Color="#1D2024" />
+      <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver" Color="#272B30" />
+      <SolidColorBrush x:Key="ComboBoxBackgroundPressed" Color="#30343A" />
+      <SolidColorBrush x:Key="ComboBoxBackgroundDisabled" Color="#17191C" />
+      <SolidColorBrush x:Key="ComboBoxForeground" Color="#F3F4EF" />
+      <SolidColorBrush x:Key="ComboBoxForegroundDisabled" Color="#A3A89E" />
+      <SolidColorBrush x:Key="ComboBoxBorderBrush" Color="#30343A" />
+      <SolidColorBrush x:Key="ComboBoxBorderBrushPointerOver" Color="#4A4F56" />
+      <SolidColorBrush x:Key="ComboBoxBorderBrushPressed" Color="#4A4F56" />
+      <SolidColorBrush x:Key="ComboBoxBorderBrushDisabled" Color="#26292D" />
+      <SolidColorBrush x:Key="ComboBoxDropDownBackground" Color="#1D2024" />
+      <SolidColorBrush x:Key="ComboBoxDropDownBorderBrush" Color="#4A4F56" />
+      <SolidColorBrush x:Key="ComboBoxDropDownGlyphForeground" Color="#BEC2BA" />
+      <SolidColorBrush x:Key="ComboBoxDropDownGlyphForegroundDisabled" Color="#A3A89E" />
+
+      <SolidColorBrush x:Key="ComboBoxItemForeground" Color="#F3F4EF" />
+      <SolidColorBrush x:Key="ComboBoxItemForegroundPointerOver" Color="#F3F4EF" />
+      <SolidColorBrush x:Key="ComboBoxItemForegroundPressed" Color="#F3F4EF" />
+      <SolidColorBrush x:Key="ComboBoxItemForegroundSelected" Color="#F3F4EF" />
+      <SolidColorBrush x:Key="ComboBoxItemForegroundSelectedPointerOver" Color="#F3F4EF" />
+      <SolidColorBrush x:Key="ComboBoxItemForegroundSelectedPressed" Color="#F3F4EF" />
+      <SolidColorBrush x:Key="ComboBoxItemBackgroundPointerOver" Color="#272B30" />
+      <SolidColorBrush x:Key="ComboBoxItemBackgroundPressed" Color="#30343A" />
+      <SolidColorBrush x:Key="ComboBoxItemBackgroundSelected" Color="#2A3318" />
+      <SolidColorBrush x:Key="ComboBoxItemBackgroundSelectedPointerOver" Color="#343F1E" />
+      <SolidColorBrush x:Key="ComboBoxItemBackgroundSelectedPressed" Color="#3D4A23" />
+
+      <!-- A ticked box: lime with a near-black tick. Avalonia's default tick is almost invisible on lime. -->
+      <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillChecked" Color="#A3E635" />
+      <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillCheckedPointerOver" Color="#B6F04F" />
+      <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillCheckedPressed" Color="#8FD122" />
+      <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeChecked" Color="#A3E635" />
+      <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeCheckedPointerOver" Color="#B6F04F" />
+      <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeCheckedPressed" Color="#8FD122" />
+      <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundChecked" Color="#14160F" />
+      <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedPointerOver" Color="#14160F" />
+      <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedPressed" Color="#14160F" />
+
+      <SolidColorBrush x:Key="ToolTipBackground" Color="#272B30" />
+      <SolidColorBrush x:Key="ToolTipForeground" Color="#F3F4EF" />
+      <SolidColorBrush x:Key="ToolTipBorderBrush" Color="#4A4F56" />
+    </ResourceDictionary>
+
+    <ResourceDictionary x:Key="Light">
+      <!-- surfaces -->
+      <SolidColorBrush x:Key="WindowBrush" Color="#EFEFE7" />
+      <SolidColorBrush x:Key="PanelBrush" Color="#F8F8F3" />
+      <SolidColorBrush x:Key="RaisedBrush" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="HoverBrush" Color="#E5E6DB" />
+      <SolidColorBrush x:Key="SelectedBrush" Color="#E2EFC4" />
+      <SolidColorBrush x:Key="LineBrush" Color="#CDCFC2" />
+
+      <!-- text -->
+      <SolidColorBrush x:Key="TextBrush" Color="#15170F" />
+      <SolidColorBrush x:Key="TextSecondaryBrush" Color="#42463B" />
+      <SolidColorBrush x:Key="TextMutedBrush" Color="#55594D" />
+      <SolidColorBrush x:Key="AccentTextBrush" Color="#3A5C10" />
+      <SolidColorBrush x:Key="FocusBrush" Color="#3A5C10" />
+
+      <!-- text you've selected in a box -->
+      <SolidColorBrush x:Key="TextSelectionBrush" Color="#3A5C10" />
+      <SolidColorBrush x:Key="OnTextSelectionBrush" Color="#FFFFFF" />
+
+      <!-- the disabled main button -->
+      <SolidColorBrush x:Key="AccentDisabledBrush" Color="#E0E1D6" />
+      <SolidColorBrush x:Key="OnAccentDisabledBrush" Color="#55594D" />
+
+      <!-- small labels and banners -->
+      <SolidColorBrush x:Key="NeutralBackBrush" Color="#E0E1D6" />
+      <SolidColorBrush x:Key="NeutralTextBrush" Color="#2F3229" />
+      <SolidColorBrush x:Key="SuccessBackBrush" Color="#D4EFB2" />
+      <SolidColorBrush x:Key="SuccessTextBrush" Color="#1F3D0C" />
+      <SolidColorBrush x:Key="InfoBackBrush" Color="#D3E4FA" />
+      <SolidColorBrush x:Key="InfoTextBrush" Color="#123A6B" />
+      <SolidColorBrush x:Key="WarningBackBrush" Color="#F9E5A8" />
+      <SolidColorBrush x:Key="WarningTextBrush" Color="#533807" />
+      <SolidColorBrush x:Key="DangerBackBrush" Color="#F7D2D2" />
+      <SolidColorBrush x:Key="DangerTextBrush" Color="#6B1414" />
+
+      <!-- Avalonia's own controls use these names -->
+      <SolidColorBrush x:Key="ButtonBackground" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#E5E6DB" />
+      <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#D8D9CD" />
+      <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="#EFEFE7" />
+      <SolidColorBrush x:Key="ButtonForeground" Color="#15170F" />
+      <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#15170F" />
+      <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#15170F" />
+      <SolidColorBrush x:Key="ButtonForegroundDisabled" Color="#55594D" />
+      <SolidColorBrush x:Key="ButtonBorderBrush" Color="#BDBFB1" />
+      <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#8E9184" />
+      <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="#8E9184" />
+      <SolidColorBrush x:Key="ButtonBorderBrushDisabled" Color="#D8D9CD" />
+
+      <SolidColorBrush x:Key="TextControlBackground" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="#F8F8F3" />
+      <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="TextControlForeground" Color="#15170F" />
+      <SolidColorBrush x:Key="TextControlForegroundPointerOver" Color="#15170F" />
+      <SolidColorBrush x:Key="TextControlForegroundFocused" Color="#15170F" />
+      <SolidColorBrush x:Key="TextControlPlaceholderForeground" Color="#55594D" />
+      <SolidColorBrush x:Key="TextControlPlaceholderForegroundPointerOver" Color="#42463B" />
+      <SolidColorBrush x:Key="TextControlPlaceholderForegroundFocused" Color="#55594D" />
+      <SolidColorBrush x:Key="TextControlBorderBrush" Color="#BDBFB1" />
+      <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="#8E9184" />
+      <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="#3A5C10" />
+
+      <SolidColorBrush x:Key="ComboBoxBackground" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver" Color="#E5E6DB" />
+      <SolidColorBrush x:Key="ComboBoxBackgroundPressed" Color="#D8D9CD" />
+      <SolidColorBrush x:Key="ComboBoxBackgroundDisabled" Color="#EFEFE7" />
+      <SolidColorBrush x:Key="ComboBoxForeground" Color="#15170F" />
+      <SolidColorBrush x:Key="ComboBoxForegroundDisabled" Color="#55594D" />
+      <SolidColorBrush x:Key="ComboBoxBorderBrush" Color="#BDBFB1" />
+      <SolidColorBrush x:Key="ComboBoxBorderBrushPointerOver" Color="#8E9184" />
+      <SolidColorBrush x:Key="ComboBoxBorderBrushPressed" Color="#8E9184" />
+      <SolidColorBrush x:Key="ComboBoxBorderBrushDisabled" Color="#D8D9CD" />
+      <SolidColorBrush x:Key="ComboBoxDropDownBackground" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="ComboBoxDropDownBorderBrush" Color="#8E9184" />
+      <SolidColorBrush x:Key="ComboBoxDropDownGlyphForeground" Color="#42463B" />
+      <SolidColorBrush x:Key="ComboBoxDropDownGlyphForegroundDisabled" Color="#55594D" />
+
+      <SolidColorBrush x:Key="ComboBoxItemForeground" Color="#15170F" />
+      <SolidColorBrush x:Key="ComboBoxItemForegroundPointerOver" Color="#15170F" />
+      <SolidColorBrush x:Key="ComboBoxItemForegroundPressed" Color="#15170F" />
+      <SolidColorBrush x:Key="ComboBoxItemForegroundSelected" Color="#15170F" />
+      <SolidColorBrush x:Key="ComboBoxItemForegroundSelectedPointerOver" Color="#15170F" />
+      <SolidColorBrush x:Key="ComboBoxItemForegroundSelectedPressed" Color="#15170F" />
+      <SolidColorBrush x:Key="ComboBoxItemBackgroundPointerOver" Color="#E5E6DB" />
+      <SolidColorBrush x:Key="ComboBoxItemBackgroundPressed" Color="#D8D9CD" />
+      <SolidColorBrush x:Key="ComboBoxItemBackgroundSelected" Color="#E2EFC4" />
+      <SolidColorBrush x:Key="ComboBoxItemBackgroundSelectedPointerOver" Color="#D6E8AE" />
+      <SolidColorBrush x:Key="ComboBoxItemBackgroundSelectedPressed" Color="#CBE09C" />
+
+      <!-- A ticked box: dark green with a white tick -->
+      <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillChecked" Color="#3A5C10" />
+      <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillCheckedPointerOver" Color="#48701A" />
+      <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillCheckedPressed" Color="#2F4B0C" />
+      <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeChecked" Color="#3A5C10" />
+      <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeCheckedPointerOver" Color="#48701A" />
+      <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeCheckedPressed" Color="#2F4B0C" />
+      <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundChecked" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedPointerOver" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedPressed" Color="#FFFFFF" />
+
+      <SolidColorBrush x:Key="ToolTipBackground" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="ToolTipForeground" Color="#15170F" />
+      <SolidColorBrush x:Key="ToolTipBorderBrush" Color="#8E9184" />
+    </ResourceDictionary>
+
+  </ResourceDictionary.ThemeDictionaries>
+
+  <!-- Avalonia normally fades placeholder text like "Search games" on top of its colour, which made it too faint to read. -->
+  <x:Double x:Key="TextControlPlaceholderOpacity">1</x:Double>
+
+  <!-- The same in both modes: the logo's gold-to-lime, with near-black text on it. -->
+  <LinearGradientBrush x:Key="AccentBrush" StartPoint="0%,0%" EndPoint="100%,100%">
+    <GradientStop Offset="0" Color="#F2C230" />
+    <GradientStop Offset="1" Color="#A3E635" />
+  </LinearGradientBrush>
+  <LinearGradientBrush x:Key="AccentHoverBrush" StartPoint="0%,0%" EndPoint="100%,100%">
+    <GradientStop Offset="0" Color="#F7D255" />
+    <GradientStop Offset="1" Color="#B6F04F" />
+  </LinearGradientBrush>
+  <LinearGradientBrush x:Key="AccentPressedBrush" StartPoint="0%,0%" EndPoint="100%,100%">
+    <GradientStop Offset="0" Color="#DDAE22" />
+    <GradientStop Offset="1" Color="#8FD122" />
+  </LinearGradientBrush>
+  <SolidColorBrush x:Key="OnAccentBrush" Color="#14160F" />
+</ResourceDictionary>

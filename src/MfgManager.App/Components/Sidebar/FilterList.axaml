@@ -1,0 +1,23 @@
+<!-- A titled list you pick one line from, each line with a count. Used for both launchers and DRM. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MfgManager.App.ViewModels"
+             x:Class="MfgManager.App.Components.Sidebar.FilterList"
+             x:Name="Root">
+  <StackPanel Spacing="4">
+    <TextBlock Classes="sectionLabel" Margin="10,0,0,2" Text="{Binding #Root.Title}" />
+    <ListBox Classes="nav"
+             ItemsSource="{Binding #Root.Options}"
+             SelectedItem="{Binding #Root.Selected}"
+             AutomationProperties.Name="{Binding #Root.Title}">
+      <ListBox.ItemTemplate>
+        <DataTemplate x:DataType="vm:FilterOption">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Right" Classes="small secondary" Margin="8,0,0,0" VerticalAlignment="Center" Text="{Binding Count}" />
+            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+          </DockPanel>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+  </StackPanel>
+</UserControl>

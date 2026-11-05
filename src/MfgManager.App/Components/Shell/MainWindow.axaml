@@ -1,0 +1,38 @@
+<!--
+    The main window, laid out in three columns:
+      left    the sidebar: launchers, DRM, which mod is used, light or dark
+      middle  the toolbar, any banners, and the wall of game covers
+      right   everything about the selected game
+    with the status line along the bottom. Each part is its own component, in its own file.
+-->
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:MfgManager.App.ViewModels"
+        xmlns:sidebar="using:MfgManager.App.Components.Sidebar"
+        xmlns:toolbar="using:MfgManager.App.Components.Toolbar"
+        xmlns:banners="using:MfgManager.App.Components.Banners"
+        xmlns:library="using:MfgManager.App.Components.Library"
+        xmlns:details="using:MfgManager.App.Components.Details"
+        xmlns:status="using:MfgManager.App.Components.Status"
+        x:Class="MfgManager.App.Components.Shell.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Title="MFG Manager"
+        Icon="/Assets/app.ico"
+        Width="1280" Height="820" MinWidth="1100" MinHeight="600"
+        WindowStartupLocation="CenterScreen">
+
+  <Grid RowDefinitions="*,Auto" ColumnDefinitions="248,*,372">
+
+    <sidebar:Sidebar Grid.Row="0" Grid.Column="0" />
+
+    <DockPanel Grid.Row="0" Grid.Column="1">
+      <toolbar:LibraryToolbar DockPanel.Dock="Top" Margin="16,14,16,8" />
+      <banners:BannerStack DockPanel.Dock="Top" Margin="16,0,16,8" />
+      <library:CoverWall DataContext="{Binding Library}" />
+    </DockPanel>
+
+    <details:DetailsPanel Grid.Row="0" Grid.Column="2" DataContext="{Binding Actions}" />
+
+    <status:StatusBar Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" DataContext="{Binding Status}" />
+  </Grid>
+</Window>

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=MFG Manager
+GenericName=DLSS Frame Generation mod manager
+Comment=Find your games and install or remove the MFG Unlocker mod
+Exec=mfg-manager
+Icon=mfg-manager
+Terminal=false
+Categories=Game;Utility;
+Keywords=dlss;frame generation;mfg;mod;proton;
+StartupWMClass=MfgManager

@@ -1,0 +1,25 @@
+<!-- Messages across the top that only show when they matter: an update, or a missing mod. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MfgManager.App.ViewModels"
+             x:Class="MfgManager.App.Components.Banners.BannerStack"
+             x:DataType="vm:MainViewModel">
+  <StackPanel Spacing="8">
+
+    <Border Classes="banner info" IsVisible="{Binding Mod.ShowUpdateBanner}">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" Margin="12,0,0,0">
+          <Button Content="Release notes" Command="{Binding Mod.OpenReleasesCommand}" />
+          <Button Content="Download and verify" Command="{Binding Mod.DownloadCommand}"
+                  ToolTip.Tip="Downloads into the app's Mods folder and checks it against GitHub's SHA-256 fingerprint" />
+        </StackPanel>
+        <TextBlock Text="{Binding Mod.UpdateText}" />
+      </DockPanel>
+    </Border>
+
+    <Border Classes="banner warning" IsVisible="{Binding Mod.Missing}">
+      <TextBlock Text="No MFGUnlocker.dll in the Mods folder or your Downloads folder. Download it, or use Choose DLL." />
+    </Border>
+
+  </StackPanel>
+</UserControl>

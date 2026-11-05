@@ -1,0 +1,33 @@
+<!-- What the scan found: DLSS Frame Generation, and DRM from the game's files and its Steam store page. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MfgManager.App.ViewModels"
+             x:Class="MfgManager.App.Components.Details.GameInfoSection"
+             x:DataType="vm:GameActionsViewModel">
+  <StackPanel Spacing="14">
+    <StackPanel Spacing="2">
+      <TextBlock Classes="label" Text="DLSS Frame Generation" />
+      <TextBlock Text="{Binding Game.FrameGenText}" TextWrapping="Wrap" />
+    </StackPanel>
+
+    <StackPanel Spacing="4">
+      <TextBlock Classes="label" Text="DRM and online services" />
+      <ItemsControl ItemsSource="{Binding Game.DrmGroups}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <WrapPanel />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="x:String">
+            <Border Classes="pill" Margin="0,0,6,6">
+              <TextBlock Text="{Binding}" />
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <TextBlock Classes="label" TextWrapping="Wrap" Text="{Binding Game.DrmNotice, StringFormat='Steam store says: {0}'}"
+                 IsVisible="{Binding Game.DrmNotice, Converter={x:Static ObjectConverters.IsNotNull}}" />
+    </StackPanel>
+  </StackPanel>
+</UserControl>

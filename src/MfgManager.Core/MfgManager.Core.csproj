@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The "brains": scanning, installing, updates. No UI code in here, so it's easy to unit test.
+       It runs on Windows and Linux; anything for one system only checks OperatingSystem.IsWindows() first. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>

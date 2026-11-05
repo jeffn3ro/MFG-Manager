@@ -1,0 +1,12 @@
+<!-- Light mode, dark mode, or follow the system. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MfgManager.App.ViewModels"
+             x:Class="MfgManager.App.Components.Sidebar.ThemePicker"
+             x:DataType="vm:MainViewModel">
+  <DockPanel>
+    <TextBlock Classes="label" Text="Appearance" Margin="10,0,8,0" VerticalAlignment="Center" />
+    <ComboBox HorizontalAlignment="Stretch" ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding Theme}"
+              AutomationProperties.Name="Appearance" />
+  </DockPanel>
+</UserControl>

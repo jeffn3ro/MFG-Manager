@@ -1,0 +1,198 @@
+<!--
+  MFG Manager installer.
+  - Installs for all users, by default into C:\Program Files\MFG Manager. Only admins can change files there, so no
+    other program can swap the app or the mod DLL it copies into games. You can pick another folder; the next
+    version installs into the same one.
+  - Adds a Start menu shortcut and an entry in "Apps & features" to uninstall it.
+  - No services, startup entries, scheduled tasks, PATH changes or scripts.
+  - Uninstalling removes the app and its Mods folder. Your settings (%LOCALAPPDATA%\MFG Manager) and the mod
+    in your games are left alone: use "Revert all" in the app first to take the mod out of every game.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:netfx="http://wixtoolset.org/schemas/v4/wxs/netfx"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+
+  <Package Name="MFG Manager" Manufacturer="MFG Manager" Version="$(Version)" Scope="perMachine"
+           UpgradeCode="2124F19C-ECFF-427F-8541-FC943F781876">
+
+    <!-- Installing a newer version replaces the old one; an older version can't replace a newer one. -->
+    <MajorUpgrade DowngradeErrorMessage="A newer version of MFG Manager is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="AppIcon" SourceFile="..\src\MfgManager.App\Assets\app.ico" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon" />
+    <Property Id="ARPNOMODIFY" Value="1" />
+    <!-- Windows' own Apps &amp; features entry for an .msi uninstalls with just a progress bar. It's hidden, and the
+         UninstallEntry component below adds one that opens the setup window, which ends on an "uninstalled" page. -->
+    <Property Id="ARPSYSTEMCOMPONENT" Value="1" />
+
+    <!-- The app needs the .NET 10 Runtime. "0" means a compatible one is installed. -->
+    <netfx:DotNetCompatibilityCheck Property="DOTNETRUNTIME10" RuntimeType="core" Platform="x64" Version="10.0.0" RollForward="minor" />
+    <Launch Condition="Installed OR DOTNETRUNTIME10 = &quot;0&quot;"
+            Message="MFG Manager needs the .NET 10 Runtime (x64). Download it from https://dotnet.microsoft.com/download/dotnet/10.0 and run this installer again." />
+
+    <!-- The wizard's pictures, drawn from the app's logo by tools\make-installer-art.ps1 -->
+    <WixVariable Id="WixUIDialogBmp" Value="Assets\dialog.bmp" />
+    <WixVariable Id="WixUIBannerBmp" Value="Assets\banner.bmp" />
+
+    <!-- A small wizard: Welcome -> Install folder (+ desktop shortcut) -> Install -> Finish (with "Launch MFG Manager" ticked).
+         Running the .msi again when it's already installed offers Repair or Remove. -->
+    <UI Id="MfgManagerUI">
+      <TextStyle Id="WixUI_Font_Normal" FaceName="Segoe UI" Size="9" />
+      <TextStyle Id="WixUI_Font_Bigger" FaceName="Segoe UI" Size="12" />
+      <TextStyle Id="WixUI_Font_Title" FaceName="Segoe UI" Size="9" Bold="yes" />
+      <Property Id="DefaultUIFont" Value="WixUI_Font_Normal" />
+
+      <DialogRef Id="ErrorDlg" />
+      <DialogRef Id="FatalError" />
+      <DialogRef Id="FilesInUse" />
+      <DialogRef Id="MsiRMFilesInUse" />
+      <DialogRef Id="PrepareDlg" />
+      <DialogRef Id="ProgressDlg" />
+      <DialogRef Id="ResumeDlg" />
+      <DialogRef Id="UserExit" />
+      <DialogRef Id="DiskCostDlg" />
+      <DialogRef Id="InvalidDirDlg" />
+
+      <!-- WiX's install folder page (InstallDirDlg) plus a "Create a desktop shortcut" checkbox -->
+      <Dialog Id="FolderDlg" Width="370" Height="270" Title="!(loc.InstallDirDlg_Title)">
+        <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="!(loc.WixUINext)" />
+        <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="!(loc.WixUIBack)" />
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="!(loc.WixUICancel)">
+          <Publish Event="SpawnDialog" Value="CancelDlg" />
+        </Control>
+        <Control Id="Description" Type="Text" X="25" Y="23" Width="280" Height="15" Transparent="yes" NoPrefix="yes" Text="!(loc.InstallDirDlgDescription)" />
+        <Control Id="Title" Type="Text" X="15" Y="6" Width="200" Height="15" Transparent="yes" NoPrefix="yes" Text="!(loc.InstallDirDlgTitle)" />
+        <Control Id="BannerBitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="44" TabSkip="no" Text="!(loc.InstallDirDlgBannerBitmap)" />
+        <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
+        <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+        <Control Id="FolderLabel" Type="Text" X="20" Y="60" Width="290" Height="30" NoPrefix="yes" Text="!(loc.InstallDirDlgFolderLabel)" />
+        <Control Id="Folder" Type="PathEdit" X="20" Y="100" Width="320" Height="18" Property="WIXUI_INSTALLDIR" Indirect="yes" />
+        <Control Id="ChangeFolder" Type="PushButton" X="20" Y="120" Width="56" Height="17" Text="!(loc.InstallDirDlgChange)" />
+        <Control Id="DesktopShortcutCheckBox" Type="CheckBox" X="20" Y="160" Width="290" Height="17" Property="DESKTOPSHORTCUT" CheckBoxValue="1" Text="Create a &amp;desktop shortcut" />
+      </Dialog>
+
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="FolderDlg" Condition="NOT Installed" />
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg" Condition="Installed AND PATCH" />
+
+      <!-- the install folder page (same steps as WiX's own WixUI_InstallDir) -->
+      <Publish Dialog="FolderDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" />
+      <Publish Dialog="FolderDlg" Control="Next" Event="SetTargetPath" Value="[WIXUI_INSTALLDIR]" Order="1" />
+      <Publish Dialog="FolderDlg" Control="Next" Event="DoAction" Value="WixUIValidatePath_X64" Order="2" Condition="NOT WIXUI_DONTVALIDATEPATH" />
+      <Publish Dialog="FolderDlg" Control="Next" Event="SpawnDialog" Value="InvalidDirDlg" Order="3" Condition="NOT WIXUI_DONTVALIDATEPATH AND WIXUI_INSTALLDIR_VALID&lt;&gt;&quot;1&quot;" />
+      <Publish Dialog="FolderDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg" Order="4" Condition="WIXUI_DONTVALIDATEPATH OR WIXUI_INSTALLDIR_VALID=&quot;1&quot;" />
+      <!-- "Change..." opens Windows' own folder picker (installer\CustomActions). The helper can't update the folder box
+           itself, so the page sets the folder to its own value afterwards, which makes Windows Installer redraw the box. -->
+      <Publish Dialog="FolderDlg" Control="ChangeFolder" Event="DoAction" Value="PickInstallFolder" Order="1" />
+      <Publish Dialog="FolderDlg" Control="ChangeFolder" Property="INSTALLFOLDER" Value="[INSTALLFOLDER]" Order="2" />
+
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="FolderDlg" Condition="NOT Installed" Order="1" />
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="MaintenanceTypeDlg" Condition="Installed" Order="2" />
+      <Publish Dialog="MaintenanceWelcomeDlg" Control="Next" Event="NewDialog" Value="MaintenanceTypeDlg" />
+      <Publish Dialog="MaintenanceTypeDlg" Control="RepairButton" Property="DONETITLE" Value="MFG Manager has been repaired" />
+      <Publish Dialog="MaintenanceTypeDlg" Control="RepairButton" Event="NewDialog" Value="VerifyReadyDlg" />
+      <Publish Dialog="MaintenanceTypeDlg" Control="RemoveButton" Property="DONETITLE" Value="[UNINSTALLEDTITLE]" />
+      <Publish Dialog="MaintenanceTypeDlg" Control="RemoveButton" Property="DONETEXT" Value="[UNINSTALLEDTEXT]" />
+      <Publish Dialog="MaintenanceTypeDlg" Control="RemoveButton" Event="NewDialog" Value="VerifyReadyDlg" />
+      <Publish Dialog="MaintenanceTypeDlg" Control="Back" Event="NewDialog" Value="MaintenanceWelcomeDlg" />
+      <Publish Dialog="ExitDialog" Control="Finish" Property="WixShellExecTarget" Value="[INSTALLFOLDER]MfgManager.exe" Order="1" />
+      <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="LaunchApplication" Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 AND NOT Installed" Order="2" />
+      <Publish Dialog="ExitDialog" Control="Finish" Event="EndDialog" Value="Return" Order="999" />
+    </UI>
+    <UIRef Id="WixUI_Common" />
+
+    <!-- The last page says what just happened (Strings.wxl puts these on it). -->
+    <Property Id="DONETITLE" Value="MFG Manager is installed" />
+    <Property Id="DONETEXT" Value="Click Finish to close setup." />
+    <Property Id="UNINSTALLEDTITLE" Value="MFG Manager has been uninstalled" />
+    <Property Id="UNINSTALLEDTEXT" Value="It's been removed from this PC. Your settings and the mod in your games were left as they are." />
+    <!-- Uninstalling from Apps &amp; features starts setup with REMOVE=ALL, skipping the Repair/Remove page -->
+    <SetProperty Id="DONETITLE" Action="SetDoneTitleUninstalled" Value="[UNINSTALLEDTITLE]" Condition="REMOVE=&quot;ALL&quot;" After="CostFinalize" Sequence="ui" />
+    <SetProperty Id="DONETEXT" Action="SetDoneTextUninstalled" Value="[UNINSTALLEDTEXT]" Condition="REMOVE=&quot;ALL&quot;" After="CostFinalize" Sequence="ui" />
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+
+    <!-- Uninstalling from Apps & features shows WiX's "Resuming the Setup Wizard" page with an Install button.
+         These turn it into "Uninstall MFG Manager" with an Uninstall button (Strings.wxl puts them on the page). -->
+    <Property Id="RESUMETITLE" Value="Resuming the MFG Manager Setup Wizard" />
+    <Property Id="RESUMETEXT" Value="The Setup Wizard will complete the installation of MFG Manager on your computer. Click Install to continue or Cancel to exit the Setup Wizard." />
+    <Property Id="RESUMEBUTTON" Value="&amp;Install" />
+    <SetProperty Id="RESUMETITLE" Action="SetResumeTitleUninstall" Value="Uninstall MFG Manager" Condition="REMOVE=&quot;ALL&quot;" After="CostFinalize" Sequence="ui" />
+    <SetProperty Id="RESUMETEXT" Action="SetResumeTextUninstall" Value="MFG Manager will be removed from this PC. Your settings and the mod in your games stay as they are. Click Uninstall to continue, or Cancel to keep it." Condition="REMOVE=&quot;ALL&quot;" After="CostFinalize" Sequence="ui" />
+    <SetProperty Id="RESUMEBUTTON" Action="SetResumeButtonUninstall" Value="&amp;Uninstall" Condition="REMOVE=&quot;ALL&quot;" After="CostFinalize" Sequence="ui" />
+
+    <!-- "Create a desktop shortcut" on the folder page; ticked unless you untick it. Secure, so the install step sees it. -->
+    <Property Id="DESKTOPSHORTCUT" Value="1" Secure="yes" />
+
+    <!-- "Launch MFG Manager" on the last page. It starts the app the normal way, so Windows shows its usual admin prompt. -->
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch MFG Manager" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
+    <CustomAction Id="LaunchApplication" BinaryRef="Wix4UtilCA_X64" DllEntry="WixShellExec" Impersonate="yes" />
+
+    <!-- The modern folder picker. It only runs from the "Change..." button, as you, while the setup window is open. -->
+    <Binary Id="FolderPickerCA" SourceFile="$(MfgManager.Installer.CustomActions.TargetDir)MfgManager.Installer.CustomActions.CA.dll" />
+    <CustomAction Id="PickInstallFolder" BinaryRef="FolderPickerCA" DllEntry="PickInstallFolder" Execute="immediate" Return="check" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="MFG Manager" />
+    </StandardDirectory>
+
+    <!-- An update installs into the folder you picked last time (remembered by ModsCleanup below). -->
+    <Property Id="INSTALLFOLDER">
+      <RegistrySearch Root="HKLM" Key="Software\MFG Manager" Name="InstallFolder" Type="raw" Bitness="always64" />
+    </Property>
+
+    <Feature Id="Main">
+      <Files Directory="INSTALLFOLDER" Include="$(PublishDir)\**" />
+      <ComponentRef Id="StartMenuShortcut" />
+      <ComponentRef Id="DesktopShortcut" />
+      <ComponentRef Id="ModsCleanup" />
+      <ComponentRef Id="UninstallEntry" />
+    </Feature>
+
+    <!-- Windows Installer's checks (ICE38/43/57) want a shortcut's marker value under HKCU, even in an
+         all-users install; it only records that the shortcut is installed. -->
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Component Id="StartMenuShortcut">
+        <Shortcut Id="AppShortcut" Name="MFG Manager" Description="Installs and removes MFG Unlocker in your games."
+                  Target="[INSTALLFOLDER]MfgManager.exe" WorkingDirectory="INSTALLFOLDER" />
+        <RegistryValue Root="HKCU" Key="Software\MFG Manager" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </StandardDirectory>
+
+    <!-- Only when "Create a desktop shortcut" is ticked. An all-users install puts it on every user's desktop. -->
+    <StandardDirectory Id="DesktopFolder">
+      <Component Id="DesktopShortcut" Condition="DESKTOPSHORTCUT">
+        <Shortcut Id="DesktopAppShortcut" Name="MFG Manager" Description="Installs and removes MFG Unlocker in your games."
+                  Target="[INSTALLFOLDER]MfgManager.exe" WorkingDirectory="INSTALLFOLDER" />
+        <RegistryValue Root="HKCU" Key="Software\MFG Manager" Name="DesktopShortcut" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </StandardDirectory>
+
+    <!-- The app creates INSTALLFOLDER\Mods itself (mod DLLs and verified downloads), so Windows Installer
+         doesn't know about those files. The folder's path is remembered here and removed on uninstall,
+         but not during an upgrade, so the mod you have survives updating MFG Manager. -->
+    <Property Id="MODSFOLDER">
+      <RegistrySearch Root="HKLM" Key="Software\MFG Manager" Name="ModsFolder" Type="raw" Bitness="always64" />
+    </Property>
+    <Component Id="UninstallEntry" Directory="INSTALLFOLDER" Bitness="always64">
+      <RegistryKey Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Uninstall\MFG Manager">
+        <RegistryValue Name="DisplayName" Type="string" Value="MFG Manager" KeyPath="yes" />
+        <RegistryValue Name="DisplayVersion" Type="string" Value="[ProductVersion]" />
+        <RegistryValue Name="Publisher" Type="string" Value="[Manufacturer]" />
+        <RegistryValue Name="DisplayIcon" Type="string" Value="[INSTALLFOLDER]MfgManager.exe" />
+        <RegistryValue Name="InstallLocation" Type="string" Value="[INSTALLFOLDER]" />
+        <!-- /qf = the full setup window. "MsiExec /X" alone shows only a progress bar, so the "uninstalled" page never appears. -->
+        <RegistryValue Name="UninstallString" Type="string" Value="MsiExec.exe /X[ProductCode] /qf" />
+        <RegistryValue Name="NoModify" Type="integer" Value="1" />
+        <RegistryValue Name="NoRepair" Type="integer" Value="1" />
+      </RegistryKey>
+    </Component>
+
+    <Component Id="ModsCleanup" Directory="INSTALLFOLDER">
+      <RegistryValue Root="HKLM" Key="Software\MFG Manager" Name="ModsFolder" Type="string" Value="[INSTALLFOLDER]Mods" KeyPath="yes" />
+      <RegistryValue Root="HKLM" Key="Software\MFG Manager" Name="InstallFolder" Type="string" Value="[INSTALLFOLDER]" />
+      <util:RemoveFolderEx On="uninstall" Property="MODSFOLDER" Condition="NOT UPGRADINGPRODUCTCODE" />
+    </Component>
+
+  </Package>
+</Wix>

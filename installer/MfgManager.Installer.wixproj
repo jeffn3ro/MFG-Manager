@@ -1,0 +1,28 @@
+<Project Sdk="WixToolset.Sdk/6.0.2">
+
+  <!-- The installer (.msi). Build it with:  powershell -File tools\build-installer.ps1
+       That script publishes the app first and passes the folder in as PublishDir. -->
+  <PropertyGroup>
+    <!-- Version 2.0.0 gives MFG-Manager-2.0.msi. A version like 2.0.1 keeps all its numbers. -->
+    <ShortVersion>$(Version)</ShortVersion>
+    <ShortVersion Condition="$(Version.EndsWith('.0'))">$(Version.Substring(0, $([MSBuild]::Subtract($(Version.Length), 2))))</ShortVersion>
+    <OutputName>MFG-Manager-$(ShortVersion)</OutputName>
+    <InstallerPlatform>x64</InstallerPlatform>
+    <DefineConstants>Version=$(Version);PublishDir=$(PublishDir)</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- the modern "Select folder" picker for the install folder page -->
+    <ProjectReference Include="CustomActions\MfgManager.Installer.CustomActions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- checks that the .NET 10 Runtime is installed -->
+    <PackageReference Include="WixToolset.Netfx.wixext" Version="6.0.2" />
+    <!-- removes the Mods folder (downloaded mod DLLs) on uninstall, and starts the app from the last page -->
+    <PackageReference Include="WixToolset.Util.wixext" Version="6.0.2" />
+    <!-- the setup wizard pages -->
+    <PackageReference Include="WixToolset.UI.wixext" Version="6.0.2" />
+  </ItemGroup>
+
+</Project>

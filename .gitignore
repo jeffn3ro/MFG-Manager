@@ -1,0 +1,12 @@
+bin/
+obj/
+.vs/
+.idea/
+*.user
+TestResults/
+artifacts/
+
+# What makepkg leaves behind when it's run directly in packaging/linux
+packaging/linux/src/
+packaging/linux/pkg/
+*.pkg.tar.*

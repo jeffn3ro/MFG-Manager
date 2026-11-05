@@ -1,0 +1,26 @@
+<!-- Above the covers: search, filters, grouping, and the actions on the whole library. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MfgManager.App.ViewModels"
+             x:Class="MfgManager.App.Components.Toolbar.LibraryToolbar"
+             x:DataType="vm:MainViewModel">
+  <StackPanel Spacing="8">
+    <Grid ColumnDefinitions="*,Auto">
+      <TextBox Grid.Column="0" Margin="0,0,8,0" PlaceholderText="Search games" Text="{Binding Library.SearchText}"
+               AutomationProperties.Name="Search games" />
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+        <Button Content="Rescan" Command="{Binding Library.RescanCommand}" />
+        <Button Content="Add game..." Command="{Binding Library.AddGameCommand}" ToolTip.Tip="Add a game the scan missed by picking its .exe" />
+        <Button Content="Revert all" Command="{Binding Actions.RevertAllCommand}" ToolTip.Tip="Remove the mod from every game" />
+      </StackPanel>
+    </Grid>
+    <StackPanel Orientation="Horizontal" Spacing="16">
+      <CheckBox Content="Only frame-gen games" IsChecked="{Binding Library.OnlyFrameGen}" />
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <TextBlock Text="Group by" VerticalAlignment="Center" />
+        <ComboBox MinWidth="130" ItemsSource="{Binding Library.GroupByOptions}" SelectedItem="{Binding Library.GroupBy}"
+                  AutomationProperties.Name="Group by" />
+      </StackPanel>
+    </StackPanel>
+  </StackPanel>
+</UserControl>

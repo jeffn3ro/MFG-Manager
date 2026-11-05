@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- A small helper the installer runs while its window is open: the modern "Select folder" picker for the
+       install folder page. Windows Installer runs these helpers on .NET Framework, which every Windows 10/11 PC has. -->
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- packs the DLL into the .CA.dll form Windows Installer can load -->
+    <PackageReference Include="WixToolset.Dtf.CustomAction" Version="6.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="CustomAction.config" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

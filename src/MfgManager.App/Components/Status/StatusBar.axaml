@@ -1,0 +1,14 @@
+<!-- The status line along the bottom: what just happened, and a moving bar while the app is busy. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MfgManager.App.ViewModels"
+             x:Class="MfgManager.App.Components.Status.StatusBar"
+             x:DataType="vm:StatusViewModel">
+  <Border Classes="panel" BorderThickness="0,1,0,0" Padding="16,6">
+    <DockPanel>
+      <ProgressBar DockPanel.Dock="Right" Width="160" Height="4" MinHeight="4" IsIndeterminate="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
+                   VerticalAlignment="Center" Margin="12,0,0,0" />
+      <TextBlock Classes="small secondary" Text="{Binding Text}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+    </DockPanel>
+  </Border>
+</UserControl>

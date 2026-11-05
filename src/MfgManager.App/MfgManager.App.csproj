@@ -1,0 +1,62 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The window you see, built with Avalonia, so the same code runs on Windows and Linux.
+       All the real work happens in MfgManager.Core. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>MfgManager</AssemblyName>
+    <RootNamespace>MfgManager.App</RootNamespace>
+    <Description>Installs and removes MFG Unlocker in your games.</Description>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <!-- Bindings are checked when building, so a typo is a build error instead of an empty field on screen. -->
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <!-- The app has no translations or dates to format, so it doesn't need the language library (libicu on Linux). -->
+    <InvariantGlobalization>true</InvariantGlobalization>
+
+    <!-- app.manifest makes Windows ask for admin rights on start. Game folders under Program Files need them.
+         Linux has no such file: games are in your own folders there, and the app runs as you.
+         Developers can build without it:  dotnet build -p:RequireAdmin=false -->
+    <RequireAdmin Condition="'$(RequireAdmin)' == ''">true</RequireAdmin>
+    <ApplicationManifest Condition="'$(RequireAdmin)' == 'true' and !$(RuntimeIdentifier.StartsWith('linux'))">app.manifest</ApplicationManifest>
+    <!-- The code doesn't use this. A build only notices the manifest changed if something it does track changes too.
+         Without this, a normal build right after a RequireAdmin=false build reuses that result and silently loses admin. -->
+    <DefineConstants Condition="'$(RequireAdmin)' != 'true'">$(DefineConstants);NO_ADMIN_MANIFEST</DefineConstants>
+  </PropertyGroup>
+
+  <!-- The installed app runs as admin, and any program you run can set environment variables that reach it.
+       So release builds ignore the two that could make .NET load other code: DOTNET_STARTUP_HOOKS and DOTNET_ROOT.
+       Debug builds keep them, because hot reload in an IDE needs them. Linux builds carry their own .NET. -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <StartupHookSupport>false</StartupHookSupport>
+    <AppHostDotNetSearch Condition="$(RuntimeIdentifier.StartsWith('win'))">Global</AppHostDotNetSearch>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- built into the app so the window can show them -->
+    <AvaloniaResource Include="Assets\app.ico" />
+    <AvaloniaResource Include="Assets\logo.png" />
+    <!-- the licence notices of what's built in have to come with the program -->
+    <None Include="Licenses\*.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="..\..\LICENSE" Link="Licenses\LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MfgManager.Core\MfgManager.Core.csproj" />
+    <!-- lets the tests set a few "internal" things, like which mod DLL is used -->
+    <InternalsVisibleTo Include="MfgManager.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.1.5" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.5" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.5" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.5" />
+    <!-- Avalonia requires this package, and it sends build information to Avalonia's servers when you compile.
+         ExcludeAssets="all" keeps its code out of the build, so nothing is sent. BuildPrivacyTests checks this. -->
+    <PackageReference Include="Avalonia.BuildServices" Version="11.3.2" ExcludeAssets="all" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

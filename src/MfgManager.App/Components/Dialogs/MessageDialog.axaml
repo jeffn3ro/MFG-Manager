@@ -1,0 +1,20 @@
+<!-- A pop-up question or message. Avalonia has no built-in one, and this one follows light and dark mode. -->
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="MfgManager.App.Components.Dialogs.MessageDialog"
+        x:Name="Root"
+        Title="MFG Manager"
+        Icon="/Assets/app.ico"
+        Width="480" SizeToContent="Height" MinHeight="140" CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+  <DockPanel Margin="20">
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,18,0,0">
+      <Button x:Name="YesButton" Classes="accent" MinWidth="88" HorizontalContentAlignment="Center" IsDefault="True" Click="OnYes" />
+      <Button x:Name="NoButton" Content="No" MinWidth="88" HorizontalContentAlignment="Center" IsCancel="True" Click="OnNo" />
+    </StackPanel>
+
+    <Border x:Name="Marker" Classes="marker" DockPanel.Dock="Left" Width="4" CornerRadius="2" Margin="0,0,14,0" />
+    <TextBlock x:Name="MessageText" TextWrapping="Wrap" VerticalAlignment="Center" />
+  </DockPanel>
+</Window>

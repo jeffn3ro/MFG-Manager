@@ -1,0 +1,25 @@
+<!-- The application: the theme and the colours. RequestedThemeVariant="Default" follows the system's light or dark setting. -->
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="MfgManager.App.App"
+             RequestedThemeVariant="Default">
+
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="/Theme/Colors.axaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </Application.Resources>
+
+  <Application.Styles>
+    <FluentTheme>
+      <FluentTheme.Palettes>
+        <ColorPaletteResources x:Key="Dark" Accent="#A3E635" RegionColor="#0E0F11" />
+        <ColorPaletteResources x:Key="Light" Accent="#3A5C10" RegionColor="#EFEFE7" />
+      </FluentTheme.Palettes>
+    </FluentTheme>
+    <StyleInclude Source="/Theme/Styles.axaml" />
+  </Application.Styles>
+
+</Application>

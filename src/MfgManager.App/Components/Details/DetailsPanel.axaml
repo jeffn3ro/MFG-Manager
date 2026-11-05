@@ -1,0 +1,23 @@
+<!-- The right column: everything about the selected game. Each block is its own component. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MfgManager.App.ViewModels"
+             xmlns:details="using:MfgManager.App.Components.Details"
+             x:Class="MfgManager.App.Components.Details.DetailsPanel"
+             x:DataType="vm:GameActionsViewModel">
+  <Border Classes="panel" BorderThickness="1,0,0,0">
+    <Grid>
+      <TextBlock Classes="secondary" Text="Pick a game to see its details." HorizontalAlignment="Center" VerticalAlignment="Center"
+                 IsVisible="{Binding HasNoGame}" />
+
+      <ScrollViewer HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding HasGame}">
+        <StackPanel Spacing="18" Margin="16,16,16,16">
+          <details:GameHeader />
+          <details:InstallSection />
+          <details:GameInfoSection />
+          <details:ExeSection />
+        </StackPanel>
+      </ScrollViewer>
+    </Grid>
+  </Border>
+</UserControl>

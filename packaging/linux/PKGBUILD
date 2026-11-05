@@ -1,0 +1,46 @@
+# The package for CachyOS and Arch. Build and install it with:
+#
+#   cd packaging/linux && makepkg -si
+#
+# or run "bash tools/build-linux.sh --package", which puts the result in artifacts/.
+# It builds from this folder's own source code, so there's nothing to download but the .NET and Avalonia packages.
+
+pkgname=mfg-manager
+pkgver=2.0.4
+pkgrel=1
+pkgdesc='Finds your games and installs the MFG Unlocker mod for DLSS Frame Generation'
+arch=('x86_64')
+license=('MIT')
+depends=(
+    'gcc-libs' 'glibc' 'zlib' 'openssl' 'krb5'
+    'libx11' 'libice' 'libsm' 'libxrandr' 'libxi' 'libxcursor' 'fontconfig'
+    'xdg-utils'
+)
+makedepends=('dotnet-sdk')
+optdepends=(
+    'xorg-xwayland: needed on Wayland desktops'
+    'xdg-desktop-portal: your desktop''s own file picker'
+    'gtk3: file picker if there is no portal'
+)
+# .NET programs break when stripped, and makepkg's compiler settings don't apply to them.
+options=('!strip' '!debug' '!lto')
+
+_root="$(cd "$startdir/../.." && pwd)"
+
+build() {
+    bash "$_root/tools/build-linux.sh"
+}
+
+package() {
+    local stage="$_root/artifacts/linux/mfg-manager"
+
+    install -d "$pkgdir/opt/mfg-manager" "$pkgdir/usr/bin"
+    cp -R "$stage/app/." "$pkgdir/opt/mfg-manager/"
+    chmod -R u=rwX,go=rX "$pkgdir/opt/mfg-manager"
+    chmod 755 "$pkgdir/opt/mfg-manager/MfgManager"
+    ln -s /opt/mfg-manager/MfgManager "$pkgdir/usr/bin/mfg-manager"
+
+    install -Dm644 "$stage/mfg-manager.desktop" "$pkgdir/usr/share/applications/mfg-manager.desktop"
+    install -Dm644 "$stage/mfg-manager.png" "$pkgdir/usr/share/icons/hicolor/256x256/apps/mfg-manager.png"
+    install -Dm644 "$_root/LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

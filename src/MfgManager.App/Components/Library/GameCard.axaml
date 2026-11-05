@@ -1,0 +1,33 @@
+<!-- One game: its cover (or initials), labels on top of it, and its name. Click it to see the details. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MfgManager.App.ViewModels"
+             xmlns:converters="using:MfgManager.App.Converters"
+             x:Class="MfgManager.App.Components.Library.GameCard"
+             x:DataType="vm:GameViewModel">
+  <Button Classes="card" Classes.selected="{Binding IsSelected}" Command="{Binding SelectCommand}"
+          ToolTip.Tip="{Binding Folder}" AutomationProperties.Name="{Binding Name}">
+    <StackPanel Width="170">
+      <Grid Height="255">
+        <Border CornerRadius="6" ClipToBounds="True" Background="{DynamicResource RaisedBrush}">
+          <Grid>
+            <TextBlock Text="{Binding Initials}" FontSize="48" FontWeight="Bold" Foreground="{DynamicResource TextMutedBrush}"
+                       HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding HasNoCover}" />
+            <Image Source="{Binding CoverPath, Converter={x:Static converters:CoverImageConverter.Instance}}" Stretch="UniformToFill" />
+          </Grid>
+        </Border>
+
+        <Border Classes="pill danger" Margin="6" HorizontalAlignment="Left" VerticalAlignment="Top" IsVisible="{Binding HasAntiCheat}">
+          <TextBlock Text="Anti-cheat" />
+        </Border>
+        <Border Classes="pill" Classes.success="{Binding BadgeIsInstalled}" Classes.info="{Binding BadgeIsUpdate}" Classes.warning="{Binding BadgeIsCheck}"
+                Margin="6" HorizontalAlignment="Right" VerticalAlignment="Top" IsVisible="{Binding Badge, Converter={x:Static ObjectConverters.IsNotNull}}">
+          <TextBlock Text="{Binding Badge}" />
+        </Border>
+      </Grid>
+
+      <TextBlock Text="{Binding Name}" Margin="2,8,2,0" FontWeight="SemiBold" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxLines="2" />
+      <TextBlock Classes="label" Text="{Binding Launcher}" Margin="2,2,2,4" />
+    </StackPanel>
+  </Button>
+</UserControl>

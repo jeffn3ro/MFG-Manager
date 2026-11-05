@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <title>MFG Manager</title>
+  <defs>
+    <linearGradient id="frame" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F2C230"/>
+      <stop offset="1" stop-color="#A3E635"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="52" fill="#101114"/>
+  <rect x="104" y="44" width="116" height="116" rx="18" fill="none" stroke="#486221" stroke-width="14"/>
+  <rect x="70" y="70" width="116" height="116" rx="18" fill="#101114" stroke="#77A62B" stroke-width="14"/>
+  <rect x="36" y="96" width="116" height="116" rx="18" fill="url(#frame)"/>
+</svg>

@@ -1,0 +1,39 @@
+<!-- The mod in this game: its status, which file name to use, and Install or Remove. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MfgManager.App.ViewModels"
+             x:Class="MfgManager.App.Components.Details.InstallSection"
+             x:DataType="vm:GameActionsViewModel">
+  <StackPanel Spacing="10">
+    <StackPanel Spacing="2">
+      <TextBlock Classes="label" Text="MFG Unlocker" />
+      <TextBlock Text="{Binding Game.StatusText}" TextWrapping="Wrap" FontWeight="SemiBold" />
+    </StackPanel>
+
+    <StackPanel Spacing="4">
+      <TextBlock Classes="label" Text="Install as" />
+      <ComboBox ItemsSource="{Binding Game.InstallNames}" SelectedItem="{Binding Game.SelectedInstallName}"
+                IsEnabled="{Binding Game.CanChooseName}" MinWidth="160" AutomationProperties.Name="Install as"
+                ToolTip.Tip="Auto picks the first supported name the game doesn't already use. Existing game files are never overwritten." />
+    </StackPanel>
+
+    <Grid ColumnDefinitions="*,8,*">
+      <Button Grid.Column="0" Classes="accent" Content="Install / Update" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+              Command="{Binding InstallCommand}" />
+      <Button Grid.Column="2" Content="Remove (revert)" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+              Command="{Binding RemoveCommand}" />
+    </Grid>
+
+    <CheckBox Content="Also remove the mod's settings and logs" IsChecked="{Binding RemoveModData}"
+              ToolTip.Tip="They're moved to the Removed mod files folder in MFG Manager's data folder, not deleted" />
+
+    <!-- Only on Linux, once the mod is in the game: Proton has to be told to load it. -->
+    <Border Classes="banner info" IsVisible="{Binding Game.LinuxLaunchOption, Converter={x:Static ObjectConverters.IsNotNull}}">
+      <StackPanel Spacing="6">
+        <TextBlock FontWeight="Normal" Text="On Linux, add this to the game's launch options in Steam, or the mod won't load:" />
+        <SelectableTextBlock Text="{Binding Game.LinuxLaunchOption}" FontFamily="monospace" TextWrapping="Wrap" Foreground="{DynamicResource InfoTextBrush}" />
+        <Button Content="Copy" Command="{Binding CopyLaunchOptionCommand}" HorizontalAlignment="Left" />
+      </StackPanel>
+    </Border>
+  </StackPanel>
+</UserControl>

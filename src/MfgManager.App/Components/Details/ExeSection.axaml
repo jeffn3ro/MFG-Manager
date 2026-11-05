@@ -1,0 +1,16 @@
+<!-- The game's .exe, because the mod goes next to it. You can change it if the scan picked the wrong one. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MfgManager.App.ViewModels"
+             xmlns:converters="using:MfgManager.App.Converters"
+             x:Class="MfgManager.App.Components.Details.ExeSection"
+             x:DataType="vm:GameActionsViewModel">
+  <StackPanel Spacing="4">
+    <TextBlock Classes="label" Text="Game .exe (the mod goes next to it)" />
+    <TextBlock Text="{Binding Game.ExeText, Converter={x:Static converters:WrapPathConverter.Instance}}" TextWrapping="Wrap" />
+    <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+      <Button Content="Change .exe..." Command="{Binding ChangeExeCommand}" />
+      <Button Content="Open folder" Command="{Binding OpenFolderCommand}" />
+    </StackPanel>
+  </StackPanel>
+</UserControl>

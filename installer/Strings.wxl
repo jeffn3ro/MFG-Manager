@@ -1,0 +1,12 @@
+<!-- Text changes to WiX's standard wizard pages. -->
+<WixLocalization Culture="en-US" xmlns="http://wixtoolset.org/schemas/v4/wxl">
+  <!-- The install folder page: a folder only admins can change keeps the mod DLL safe from other programs. -->
+  <String Id="InstallDirDlgDescription" Value="Program Files is safest: only admins can change files there." />
+  <!-- The "Resuming" page, which Apps & features shows before an uninstall (set in Package.wxs) -->
+  <String Id="ResumeDlgTitle" Value="{\WixUI_Font_Bigger}[RESUMETITLE]" />
+  <String Id="ResumeDlgDescription" Value="[RESUMETEXT]" />
+  <String Id="ResumeDlgInstall" Value="[RESUMEBUTTON]" />
+  <!-- The last page: "installed", "repaired" or "uninstalled" (set in Package.wxs) -->
+  <String Id="ExitDialogTitle" Value="{\WixUI_Font_Bigger}[DONETITLE]" />
+  <String Id="ExitDialogDescription" Value="[DONETEXT]" />
+</WixLocalization>

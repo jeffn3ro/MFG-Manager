@@ -1,0 +1,15 @@
+<!-- Which MFGUnlocker.dll the app uses, and a button to pick a different one. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MfgManager.App.ViewModels"
+             x:Class="MfgManager.App.Components.Sidebar.ModCard"
+             x:DataType="vm:ModViewModel">
+  <StackPanel Spacing="6">
+    <TextBlock Classes="sectionLabel" Text="MOD" Margin="10,0,0,0" />
+    <TextBlock Text="{Binding VersionText}" FontWeight="SemiBold" Margin="10,0,0,0" TextWrapping="Wrap" />
+    <TextBlock Classes="label" Margin="10,0,0,0" Text="{Binding PathText}" TextTrimming="PathSegmentEllipsis"
+               ToolTip.Tip="{Binding PathText}" IsVisible="{Binding !Missing}" />
+    <Button Content="Choose DLL..." Command="{Binding ChooseCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+            ToolTip.Tip="Use a different MFGUnlocker.dll" />
+  </StackPanel>
+</UserControl>

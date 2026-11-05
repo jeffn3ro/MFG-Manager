@@ -1,0 +1,30 @@
+<!-- The selected game's cover, name and launcher, plus a warning if it has anti-cheat. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MfgManager.App.ViewModels"
+             xmlns:converters="using:MfgManager.App.Converters"
+             x:Class="MfgManager.App.Components.Details.GameHeader"
+             x:DataType="vm:GameActionsViewModel">
+  <StackPanel Spacing="12">
+    <Grid ColumnDefinitions="96,*">
+      <Border Grid.Column="0" Width="96" Height="144" CornerRadius="6" ClipToBounds="True" Background="{DynamicResource RaisedBrush}" VerticalAlignment="Top">
+        <Grid>
+          <TextBlock Text="{Binding Game.Initials}" FontSize="30" FontWeight="Bold" Foreground="{DynamicResource TextMutedBrush}"
+                     HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding Game.HasNoCover}" />
+          <Image Source="{Binding Game.CoverPath, Converter={x:Static converters:CoverImageConverter.Instance}}" Stretch="UniformToFill" />
+        </Grid>
+      </Border>
+      <StackPanel Grid.Column="1" Margin="12,0,0,0" Spacing="2">
+        <TextBlock Classes="title" Text="{Binding Game.Name}" />
+        <TextBlock Classes="secondary" Text="{Binding Game.Launcher}" />
+      </StackPanel>
+    </Grid>
+
+    <Border Classes="banner danger" IsVisible="{Binding Game.HasAntiCheat}">
+      <TextBlock FontWeight="Normal">
+        <Run FontWeight="Bold" Text="{Binding Game.AntiCheat}" />
+        <Run Text=" found. Anti-cheat may see the mod as a cheat. Don't play online with it installed; use Remove to revert." />
+      </TextBlock>
+    </Border>
+  </StackPanel>
+</UserControl>

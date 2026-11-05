@@ -1,0 +1,5 @@
+# Linux can't run these if Git gives them Windows line endings.
+*.sh text eol=lf
+*.desktop text eol=lf
+PKGBUILD text eol=lf
+deb-control text eol=lf

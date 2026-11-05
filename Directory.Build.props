@@ -1,0 +1,12 @@
+<Project>
+
+  <!-- Settings shared by every project in this folder. -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Company>MFG Manager</Company>
+    <Product>MFG Manager</Product>
+    <Version>2.0.4</Version>
+  </PropertyGroup>
+
+</Project>
