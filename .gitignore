@@ -10,3 +10,6 @@ artifacts/
 packaging/linux/src/
 packaging/linux/pkg/
 *.pkg.tar.*
+
+# Local settings from Claude Code. Approved commands are saved here word for word, and can include secrets.
+.claude/

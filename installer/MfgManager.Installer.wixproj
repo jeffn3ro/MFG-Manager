@@ -12,16 +12,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- the modern "Select folder" picker for the install folder page -->
+    <!-- The modern "Select folder" picker for the install folder page. -->
     <ProjectReference Include="CustomActions\MfgManager.Installer.CustomActions.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <!-- checks that the .NET 10 Runtime is installed -->
+    <!-- Checks that the .NET 10 Runtime is installed. -->
     <PackageReference Include="WixToolset.Netfx.wixext" Version="6.0.2" />
-    <!-- removes the Mods folder (downloaded mod DLLs) on uninstall, and starts the app from the last page -->
+    <!-- Removes the Mods folder (downloaded mod DLLs) on uninstall, and starts the app from the last page. -->
     <PackageReference Include="WixToolset.Util.wixext" Version="6.0.2" />
-    <!-- the setup wizard pages -->
+    <!-- The setup wizard pages. -->
     <PackageReference Include="WixToolset.UI.wixext" Version="6.0.2" />
   </ItemGroup>
 

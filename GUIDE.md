@@ -2,20 +2,6 @@
 
 This guide is for anyone reading or changing the code. For what the app is and how to install it, see the [README](README.md).
 
-## New to .NET?
-
-| Word | What it is | Like in Angular or npm |
-|---|---|---|
-| C# | The programming language | TypeScript |
-| .NET SDK | Compiler and build tool (`dotnet build`, `dotnet test`) | Node + Angular CLI |
-| Solution (`.sln`) | Groups the projects | Workspace |
-| Project (`.csproj`) | One buildable unit and its settings | `package.json` + `tsconfig` |
-| NuGet package | A downloaded library | npm package |
-| Assembly (`.dll`) | The compiled result of a project | Build output |
-| `bin/`, `obj/` | Build results, safe to delete | `dist/`, cache |
-| Avalonia | The window framework. It draws everything itself, so it looks the same on Windows and Linux | Angular itself |
-| AXAML | The markup for screens | Component `.html` templates |
-
 ## How the projects connect
 
 ```text
@@ -31,7 +17,7 @@ Arrows mean "uses". The most important rule is that **Core knows nothing about t
 **What happens when the app opens:**
 
 1. [Program.cs](src/MfgManager.App/Program.cs) starts Avalonia.
-2. [App.axaml.cs](src/MfgManager.App/App.axaml.cs) creates the services and the window. It's like `main.ts`, with dependency injection done by hand.
+2. [App.axaml.cs](src/MfgManager.App/App.axaml.cs) creates the services and the window. The services are wired up by hand, without a dependency injection container.
 3. When the window opens, [MainViewModel](src/MfgManager.App/ViewModels/MainViewModel.cs) finds the mod, scans for games, then checks GitHub for a newer mod.
 4. [GameScanner](src/MfgManager.Core/Scanning/GameScanner.cs) asks each launcher for its games, and [GameInspector](src/MfgManager.Core/Scanning/GameInspector.cs) looks through each game's files.
 5. Each game gets a `GameViewModel`, `GroupedView` filters and groups them, and `CoverWall` draws the result through bindings.
@@ -84,27 +70,14 @@ MFG-Manager/
 
 ## How the window code works
 
-The pattern is called **MVVM**. The Model is plain data (`Game`), the View is the `.axaml` file, and the ViewModel is the class the view binds to. The `.axaml.cs` files have almost no code on purpose.
+The app uses **MVVM**: models are plain data (`Game`), views are `.axaml` files, and each view binds to a ViewModel. The `.axaml.cs` code-behind files are kept almost empty.
 
-| Angular | Here |
-|---|---|
-| `component.ts` class | A ViewModel, like `LibraryViewModel.cs` |
-| `component.html` | `.axaml`, like `GameCard.axaml` |
-| `<app-game-card>` | `<library:GameCard />` |
-| `[value]="name"` | `Text="{Binding Name}"` |
-| `[(ngModel)]="searchText"` | `Text="{Binding SearchText}"` (two-way for text boxes) |
-| `(click)="install()"` | `Command="{Binding InstallCommand}"` |
-| `*ngFor` | `ItemsSource="{Binding Games}"` with an `ItemTemplate` |
-| `*ngIf` | `IsVisible="{Binding HasGame}"` |
-| `[class.selected]="isSelected"` | `Classes.selected="{Binding IsSelected}"` |
-| Pipes | Converters |
-| CSS | `Theme/Styles.axaml`. Selectors work like CSS: `Button.accent:pointerover` |
-| CSS variables | `{DynamicResource TextBrush}`, defined in `Theme/Colors.axaml` |
-| Change detection | `SetProperty(...)` raises `PropertyChanged`, so the screen redraws |
-| Services and DI | Plain classes, created in `App.CreateMainViewModel()` and passed in |
-| `ngOnInit` | `MainViewModel.InitializeAsync()` |
-
-Bindings are compiled, so a typo in `{Binding Nmae}` is a build error instead of an empty field on screen.
+- **ViewModels** derive from `ObservableObject`. A property calls `SetProperty(...)`, which raises `PropertyChanged` so bound controls update.
+- **Buttons** bind to a `RelayCommand`, which disables the button while its action runs.
+- **Bindings are compiled,** so a typo in `{Binding Nmae}` is a build error instead of an empty field on screen.
+- **Converters** in `Converters/` turn values into what's displayed, like a file path into a cover image.
+- **Styles** live in `Theme/Styles.axaml`, and every colour is a `{DynamicResource ...}` defined in `Theme/Colors.axaml`.
+- **Services** are plain classes, created in `App.CreateMainViewModel()` and passed in through constructors. Tests pass in fakes the same way.
 
 ### The reusable filter and grouping class
 

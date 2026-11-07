@@ -4,10 +4,8 @@ using System.Runtime.CompilerServices;
 namespace MfgManager.App.ViewModels;
 
 /// <summary>
-/// Base class for ViewModels. If you know Angular: a ViewModel is like a component class, the .axaml file is its
-/// template, and {Binding Name} in the markup is like {{ name }} or [value]="name".
-/// Calling SetProperty tells the window "this value changed, redraw it".
-/// Angular's change detection does this for you automatically; here it takes this event.
+/// Base class for ViewModels. SetProperty stores a new value and raises PropertyChanged, which tells every control
+/// bound to that property to update.
 /// </summary>
 public abstract class ObservableObject : INotifyPropertyChanged
 {

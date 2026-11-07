@@ -4,7 +4,7 @@ using System.Windows.Input;
 namespace MfgManager.App.ViewModels;
 
 /// <summary>
-/// A button action. In markup: Command="{Binding InstallCommand}" (like (click)="install()" in Angular).
+/// A button action, bound in markup with Command="{Binding InstallCommand}".
 /// While an async action runs, the button is disabled so it can't be clicked twice.
 /// </summary>
 public sealed class RelayCommand(Func<Task> execute, Func<bool>? canExecute = null) : ICommand

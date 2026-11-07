@@ -13,7 +13,7 @@ using MfgManager.Core.Store;
 
 namespace MfgManager.App;
 
-/// <summary>The app's starting point (like main.ts in Angular): builds the services and opens the window.</summary>
+/// <summary>The app's starting point: builds the services and opens the window.</summary>
 public partial class App : Application
 {
     public override void Initialize() => AvaloniaXamlLoader.Load(this);
@@ -39,7 +39,7 @@ public partial class App : Application
         base.OnFrameworkInitializationCompleted();
     }
 
-    /// <summary>Creates every service and hands them to the ViewModel (Angular would do this with dependency injection).</summary>
+    /// <summary>Creates every service and passes it to the ViewModel. The app is small enough to do this by hand, without a dependency injection container.</summary>
     public static MainViewModel CreateMainViewModel(IDialogs dialogs)
     {
         string dataFolder = AppPaths.DataFolder;

@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- The "brains": scanning, installing, updates. No UI code in here, so it's easy to unit test.
+  <!-- The logic: scanning, installing and updates. It has no window code, so it can be tested directly.
        It runs on Windows and Linux; anything for one system only checks OperatingSystem.IsWindows() first. -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>

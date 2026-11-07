@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- The window you see, built with Avalonia, so the same code runs on Windows and Linux.
-       All the real work happens in MfgManager.Core. -->
+  <!-- The window, built with Avalonia so the same code runs on Windows and Linux.
+       The logic lives in MfgManager.Core. -->
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
@@ -29,7 +29,7 @@
   </PropertyGroup>
 
   <!-- The installed app runs as admin, and any program you run can set environment variables that reach it.
-       So release builds ignore the two that could make .NET load other code: DOTNET_STARTUP_HOOKS and DOTNET_ROOT.
+       So release builds ignore two that could make .NET load other code: DOTNET_STARTUP_HOOKS and DOTNET_ROOT.
        Debug builds keep them, because hot reload in an IDE needs them. Linux builds carry their own .NET. -->
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <StartupHookSupport>false</StartupHookSupport>
@@ -37,17 +37,17 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- built into the app so the window can show them -->
+    <!-- Built into the app so the window can show them. -->
     <AvaloniaResource Include="Assets\app.ico" />
     <AvaloniaResource Include="Assets\logo.png" />
-    <!-- the licence notices of what's built in have to come with the program -->
+    <!-- The licence notices of what's built in have to come with the program. -->
     <None Include="Licenses\*.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <None Include="..\..\LICENSE" Link="Licenses\LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\MfgManager.Core\MfgManager.Core.csproj" />
-    <!-- lets the tests set a few "internal" things, like which mod DLL is used -->
+    <!-- Lets the tests set a few "internal" things, like which mod DLL is used. -->
     <InternalsVisibleTo Include="MfgManager.Tests" />
   </ItemGroup>
 

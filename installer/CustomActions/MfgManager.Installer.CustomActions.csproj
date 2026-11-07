@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- packs the DLL into the .CA.dll form Windows Installer can load -->
+    <!-- Packs the DLL into the .CA.dll form Windows Installer can load. -->
     <PackageReference Include="WixToolset.Dtf.CustomAction" Version="6.0.2" />
   </ItemGroup>
 

@@ -83,13 +83,6 @@ public class RealLibraryCheck
         if (Environment.GetEnvironmentVariable("MFG_SHOTS") is { } folder)
             File.WriteAllLines(Path.Combine(folder, $"real-report-{mode}.txt"), report);
 
-        GameViewModel? cyberpunk = vm.Library.Games.FirstOrDefault(g => g.Name.Contains("Cyberpunk"));
-        if (cyberpunk is not null)
-        {
-            vm.Library.SelectedGame = cyberpunk;
-            Stage.Settle();
-            Stage.Snapshot(window, "Real-cyberpunk", mode);
-        }
         window.Close();
     });
 }
