@@ -11,6 +11,9 @@ A desktop app that finds your games, shows which ones have DLSS Frame Generation
 
 > **Unofficial.** This project isn't affiliated with or endorsed by NVIDIA, the author of MFG Unlocker, Valve, or any game or launcher mentioned here. All trademarks belong to their owners.
 
+> [!NOTE]
+> This port was made with Claude Code, Anthropic's AI coding assistant. Claude Code wrote most of the port's code, tools and docs, working with the project's human author, who directed, tested and played it. See Contributors.
+
 ## Read this first
 
 - **Anti-cheat can get you banned.** Anti-cheat systems can treat the mod as a cheat. The app warns you before installing into a game where it finds anti-cheat, but it can't find every kind. Don't play online with the mod installed. Using it is at your own risk.
@@ -26,6 +29,8 @@ A desktop app that finds your games, shows which ones have DLSS Frame Generation
 - Installs the mod under a file name the game will load, and never overwrites a file that belongs to the game.
 - Removes the mod again, from one game or from all of them, and only deletes a file after checking that it really is the mod.
 - Tells you when a newer mod version is out, and has light and dark mode.
+
+
 
 ## Privacy
 
