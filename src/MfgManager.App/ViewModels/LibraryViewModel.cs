@@ -166,8 +166,12 @@ public sealed class LibraryViewModel : ObservableObject
         try
         {
             var progress = new Progress<string>(text => _status.Text = text);
-            // Task.Run keeps the window responsive.
-            IReadOnlyList<Game> games = await Task.Run(() => _scanner.Scan(progress));
+            // Task.Run keeps the window responsive. Each game's mod status is read there too, since that's disk work as well.
+            (IReadOnlyList<Game> games, StatusRead[] statuses) = await Task.Run(() =>
+            {
+                IReadOnlyList<Game> found = _scanner.Scan(progress);
+                return (found, ReadStatuses(found, mod));
+            });
 
             string? selectedFolder = SelectedGame?.Folder;
             using (View.DeferRefresh())
@@ -175,7 +179,9 @@ public sealed class LibraryViewModel : ObservableObject
                 Games.Clear();
                 foreach (Game game in games) Games.Add(new GameViewModel(game, select => SelectedGame = select));
             }
-            RefreshStatuses();
+            // If a different mod DLL was picked during the scan, the statuses were read against the old one.
+            if (Equals(mod, Mod)) ApplyStatuses([.. Games], statuses);
+            else RefreshStatuses();
             RefreshFilterOptions();
             SelectedGame = Games.FirstOrDefault(g => g.Folder == selectedFolder) ?? FirstCard();
 
@@ -196,7 +202,10 @@ public sealed class LibraryViewModel : ObservableObject
         {
             try
             {
-                game.CoverPath = await _store.GetCoverAsync(game.Game, steamFolder);
+                string? cover = await _store.GetCoverAsync(game.Game, steamFolder);
+                // Decoded off the window's thread first, so drawing the card doesn't pause the window.
+                if (cover is not null) await CoverImages.PreloadAsync(cover);
+                game.CoverPath = cover;
                 game.StoreDrm = await _store.GetDrmAsync(game.Game);
             }
             // The last three come from an answer that's valid JSON but not what Steam normally sends.
@@ -261,7 +270,21 @@ public sealed class LibraryViewModel : ObservableObject
     /// <summary>Re-reads every game's mod status. Call it after anything that changes game folders or the mod.</summary>
     public void RefreshStatuses()
     {
-        foreach (GameViewModel game in Games) game.Refresh(_installer, Mod);
+        List<GameViewModel> games = [.. Games];
+        ApplyStatuses(games, ReadStatuses([.. games.Select(game => game.Game)], Mod));
+    }
+
+    /// <summary>Reads every game's mod status from disk at the same time. Safe to run off the window's thread.</summary>
+    private StatusRead[] ReadStatuses(IReadOnlyList<Game> games, ModPackage? mod)
+    {
+        var statuses = new StatusRead[games.Count];
+        SideBySide.For(games.Count, i => statuses[i] = GameViewModel.ReadStatus(_installer, games[i], mod));
+        return statuses;
+    }
+
+    private void ApplyStatuses(List<GameViewModel> games, StatusRead[] statuses)
+    {
+        for (int i = 0; i < games.Count; i++) games[i].Apply(statuses[i]);
         View.Refresh();
         StatusVersion++;
     }

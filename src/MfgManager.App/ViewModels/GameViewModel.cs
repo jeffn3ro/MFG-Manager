@@ -142,14 +142,24 @@ public sealed class GameViewModel : ObservableObject
         }
     } = AutoName;
 
+    /// <summary>Re-reads the mod status from disk and shows it.</summary>
+    public void Refresh(ModInstaller installer, ModPackage? mod) => Apply(ReadStatus(installer, Game, mod));
+
+    /// <summary>Reads a game's mod status from disk. It doesn't touch the window, so it can run on any thread.</summary>
+    public static StatusRead ReadStatus(ModInstaller installer, Game game, ModPackage? mod)
+    {
+        ModStatus status = installer.GetStatus(game, mod);
+        return new StatusRead(status, status.DllName is null ? ModInstaller.GetFreeNames(game) : []);
+    }
+
     /// <summary>
-    /// Re-reads the mod status from disk and tells the window to redraw the card
+    /// Shows a status from <see cref="ReadStatus"/> and tells the window to redraw the card
     /// (including what the game was found to have, which changes when it's checked again).
     /// </summary>
-    public void Refresh(ModInstaller installer, ModPackage? mod)
+    public void Apply(StatusRead read)
     {
-        _status = installer.GetStatus(Game, mod);
-        InstallNames = _status.DllName is { } current ? [current] : [AutoName, .. ModInstaller.GetFreeNames(Game)];
+        _status = read.Status;
+        InstallNames = _status.DllName is { } current ? [current] : [AutoName, .. read.FreeNames];
         SelectedInstallName = InstallNames[0];
 
         foreach (string name in new[] { nameof(Status), nameof(CanRemove), nameof(CanChooseName), nameof(StatusText), nameof(Badge),

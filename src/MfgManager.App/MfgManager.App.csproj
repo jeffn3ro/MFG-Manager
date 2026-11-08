@@ -36,6 +36,13 @@
     <AppHostDotNetSearch Condition="$(RuntimeIdentifier.StartsWith('win'))">Global</AppHostDotNetSearch>
   </PropertyGroup>
 
+  <!-- Release builds are turned into machine code while building ("ReadyToRun"). Otherwise .NET compiles the app and
+       Avalonia every time the app starts, which about doubles the start-up time. The compiler is Microsoft's NuGet package
+       Microsoft.NETCore.App.Crossgen2. It's only used while building and isn't part of the app. -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <PublishReadyToRun>true</PublishReadyToRun>
+  </PropertyGroup>
+
   <ItemGroup>
     <!-- Built into the app so the window can show them. -->
     <AvaloniaResource Include="Assets\app.ico" />

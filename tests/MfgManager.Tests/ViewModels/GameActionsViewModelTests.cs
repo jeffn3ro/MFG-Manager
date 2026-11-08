@@ -310,4 +310,25 @@ public class GameActionsViewModelTests
 
         Assert.Null(s.Dialogs.Copied);
     }
+
+    [Fact]
+    public void Buttons_that_change_games_wait_while_a_scan_runs()
+    {
+        using var s = new AppSetup();
+        GameViewModel game = s.AddGame("Alpha", Launcher.Steam);
+        s.Library.SelectedGame = game;
+        s.Actions.InstallCommand.Execute(null);
+        Assert.True(game.CanRemove);
+        RelayCommand[] buttons = [s.Actions.InstallCommand, s.Actions.RemoveCommand, s.Actions.RevertAllCommand, s.Actions.ChangeExeCommand];
+        int changes = 0;
+        foreach (RelayCommand button in buttons) button.CanExecuteChanged += (_, _) => changes++;
+
+        s.Vm.Status.IsBusy = true;
+        Assert.All(buttons, button => Assert.False(button.CanExecute()));
+
+        s.Vm.Status.IsBusy = false;
+        Assert.All(buttons, button => Assert.True(button.CanExecute()));
+        // The window only re-checks a button when it's told to.
+        Assert.True(changes >= buttons.Length * 2);
+    }
 }

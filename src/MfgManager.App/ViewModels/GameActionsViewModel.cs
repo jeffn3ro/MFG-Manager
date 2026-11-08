@@ -32,10 +32,12 @@ public sealed class GameActionsViewModel : ObservableObject
         _status = status;
         _isRunning = isRunning ?? GameProcesses.IsRunning;
 
-        InstallCommand = new RelayCommand(InstallAsync, () => Game?.Game.Exe is not null && _mod.Mod is not null).WatchEnabledOn(_library, _mod);
-        RemoveCommand = new RelayCommand(RemoveAsync, () => Game?.CanRemove == true).WatchEnabledOn(_library);
-        RevertAllCommand = new RelayCommand(RevertAllAsync, () => _library.Games.Any(g => g.CanRemove)).WatchEnabledOn(_library);
-        ChangeExeCommand = new RelayCommand(ChangeExeAsync, () => Game is not null).WatchEnabledOn(_library);
+        // These change game folders and settings, so they wait while a scan reads them in the background.
+        InstallCommand = new RelayCommand(InstallAsync, () => !_status.IsBusy && Game?.Game.Exe is not null && _mod.Mod is not null)
+            .WatchEnabledOn(_library, _mod, _status);
+        RemoveCommand = new RelayCommand(RemoveAsync, () => !_status.IsBusy && Game?.CanRemove == true).WatchEnabledOn(_library, _status);
+        RevertAllCommand = new RelayCommand(RevertAllAsync, () => !_status.IsBusy && _library.Games.Any(g => g.CanRemove)).WatchEnabledOn(_library, _status);
+        ChangeExeCommand = new RelayCommand(ChangeExeAsync, () => !_status.IsBusy && Game is not null).WatchEnabledOn(_library, _status);
         OpenFolderCommand = new RelayCommand(OpenFolder, () => Game?.Game.Exe is not null).WatchEnabledOn(_library);
         CopyLaunchOptionCommand = new RelayCommand(CopyLaunchOptionAsync);
 

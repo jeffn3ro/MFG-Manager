@@ -171,7 +171,7 @@ public sealed partial class SteamStore(HttpClient http, string cacheFolder) : ID
 
     // ---------------- cache ----------------
 
-    private sealed class StoreCache
+    internal sealed class StoreCache
     {
         public Dictionary<string, int?> AppIds { get; set; } = new(StringComparer.OrdinalIgnoreCase);
         public Dictionary<int, StoreDrm> Drm { get; set; } = [];
@@ -185,7 +185,7 @@ public sealed partial class SteamStore(HttpClient http, string cacheFolder) : ID
         {
             if (_cache is null && File.Exists(_cacheFile))
             {
-                try { _cache = JsonSerializer.Deserialize<StoreCache>(await File.ReadAllTextAsync(_cacheFile)); }
+                try { _cache = JsonSerializer.Deserialize(await File.ReadAllTextAsync(_cacheFile), StoreJson.Default.StoreCache); }
                 catch (JsonException) { }
             }
             _cache ??= new StoreCache();
@@ -203,9 +203,9 @@ public sealed partial class SteamStore(HttpClient http, string cacheFolder) : ID
         await _cacheLock.WaitAsync();
         try
         {
-            if (!_cacheChanged) return;
+            if (!_cacheChanged || _cache is null) return;
             Directory.CreateDirectory(Path.GetDirectoryName(_cacheFile)!);
-            await File.WriteAllTextAsync(_cacheFile, JsonSerializer.Serialize(_cache));
+            await File.WriteAllTextAsync(_cacheFile, JsonSerializer.Serialize(_cache, StoreJson.Default.StoreCache));
             _cacheChanged = false;
         }
         finally { _cacheLock.Release(); }

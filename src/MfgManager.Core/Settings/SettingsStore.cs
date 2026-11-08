@@ -6,14 +6,12 @@ namespace MfgManager.Core.Settings;
 /// <summary>Loads and saves <see cref="AppSettings"/> to a JSON file.</summary>
 public sealed class SettingsStore(string filePath)
 {
-    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
-
     public AppSettings Load()
     {
         if (!File.Exists(filePath)) return new AppSettings();
         try
         {
-            return Cleaned(JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(filePath)) ?? new AppSettings());
+            return Cleaned(JsonSerializer.Deserialize(File.ReadAllText(filePath), SettingsJson.Default.AppSettings) ?? new AppSettings());
         }
         catch (JsonException)
         {
@@ -48,7 +46,7 @@ public sealed class SettingsStore(string filePath)
         AppPaths.EnsureFolder(Path.GetDirectoryName(filePath)!);
         // Write to a temp file first so a crash mid-write can't leave a half-written settings file.
         string temp = filePath + ".tmp";
-        File.WriteAllText(temp, JsonSerializer.Serialize(settings, JsonOptions));
+        File.WriteAllText(temp, JsonSerializer.Serialize(settings, SettingsJson.Default.AppSettings));
         File.Move(temp, filePath, overwrite: true);
     }
 }

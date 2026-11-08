@@ -206,6 +206,16 @@ public class PackagingTests
         Assert.Contains("""System\.StartupHookProvider\.IsSupported""", script);
     }
 
+    [Fact]
+    public void Release_builds_are_turned_into_machine_code_so_the_app_starts_fast()
+    {
+        var project = XDocument.Load(Path.Combine(Root, "src", "MfgManager.App", "MfgManager.App.csproj"));
+        XElement readyToRun = Assert.Single(project.Descendants("PublishReadyToRun"));
+
+        Assert.Equal("true", readyToRun.Value);
+        Assert.Contains("'$(Configuration)' == 'Release'", (string?)readyToRun.Parent!.Attribute("Condition"), StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("src/MfgManager.App/Services/WindowFrame.cs")]
     [InlineData("installer/CustomActions/FolderPicker.cs")]

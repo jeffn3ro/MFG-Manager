@@ -1,5 +1,8 @@
 using MfgManager.App.ViewModels;
+using MfgManager.Core.Mod;
 using MfgManager.Core.Models;
+using MfgManager.Core.Scanning;
+using MfgManager.Core.Store;
 
 namespace MfgManager.Tests.ViewModels;
 
@@ -220,5 +223,52 @@ public class LibraryViewModelTests
 
         Assert.Empty(s.Library.Games);
         Assert.Empty(s.Settings.ManualGames);
+    }
+
+    [Fact]
+    public async Task A_scan_shows_which_games_have_the_mod()
+    {
+        using var s = new AppSetup();
+        Game withMod = s.MakeGame("With mod", Launcher.Steam);
+        File.WriteAllText(Path.Combine(withMod.Folder, "version.dll"), "MOD 1.7.0");
+        Game without = s.MakeGame("Without", Launcher.Steam);
+        s.ScannerGames.AddRange([withMod, without]);
+
+        await s.Library.ScanAsync(s.Vm.Mod.Mod);
+
+        GameViewModel[] games = [.. s.Library.Games];
+        Assert.Equal(ModState.Installed, games[0].Status.State);
+        Assert.Equal(["version.dll"], games[0].InstallNames);
+        Assert.Equal(ModState.NotInstalled, games[1].Status.State);
+        Assert.Equal(GameViewModel.AutoName, games[1].InstallNames[0]);
+        Assert.Contains("version.dll", games[1].InstallNames);
+    }
+
+    [Fact]
+    public async Task A_mod_picked_while_the_scan_runs_is_the_one_games_are_compared_with()
+    {
+        using var s = new AppSetup();
+        Game game = s.MakeGame("Has 1.7.0", Launcher.Steam);
+        File.WriteAllText(Path.Combine(game.Folder, "version.dll"), "MOD 1.7.0");
+        using var scanStarted = new ManualResetEventSlim();
+        using var carryOn = new ManualResetEventSlim();
+        IEnumerable<Game> SlowLauncher()
+        {
+            scanStarted.Set();
+            carryOn.Wait(TestContext.Current.CancellationToken);
+            return [game];
+        }
+        var installer = new ModInstaller(s.Settings, () => { }, s.Temp.Folder("removed-here"), FakeMod.ReadVersion);
+        var library = new LibraryViewModel(s.Settings, () => { }, new GameScanner(s.Settings, [SlowLauncher]), installer,
+            new SteamStore(s.Web.Client(), s.Temp.Folder("cache-here")), s.Dialogs, new StatusViewModel());
+
+        Task scan = library.ScanAsync(s.Vm.Mod.Mod);
+        scanStarted.Wait(TestContext.Current.CancellationToken);
+        // What the window does when you pick a newer DLL.
+        library.Mod = FakeMod.Create(s.Temp, "1.8.0");
+        carryOn.Set();
+        await scan;
+
+        Assert.Equal(ModState.Outdated, Assert.Single(library.Games).Status.State);
     }
 }

@@ -25,6 +25,45 @@ public class SettingsStoreTests
     }
 
     [Fact]
+    public void A_file_saved_by_2_0_5_loads_and_is_written_back_the_same_way()
+    {
+        // Exactly what 2.0.5 wrote, before the JSON code was generated while building.
+        const string Saved205 = """
+            {
+              "Theme": 2,
+              "ModDllPath": "C:\\Mods\\MFGUnlocker.dll",
+              "ManualGames": [
+                "D:\\Game\\game.exe"
+              ],
+              "ExeOverrides": {
+                "D:\\Game": "D:\\Game\\bin\\game.exe"
+              },
+              "Installs": [
+                {
+                  "Folder": "D:\\Game\\bin",
+                  "DllName": "version.dll",
+                  "ModVersion": "1.7.0",
+                  "InstalledAt": "2026-11-01T00:00:00"
+                }
+              ]
+            }
+            """;
+        using var temp = new TempFolder();
+        string file = temp.File("settings.json", Saved205);
+        var store = new SettingsStore(file);
+
+        AppSettings loaded = store.Load();
+        Assert.Equal(ThemeChoice.Dark, loaded.Theme);
+        Assert.Equal("""C:\Mods\MFGUnlocker.dll""", loaded.ModDllPath);
+        Assert.Equal(["""D:\Game\game.exe"""], loaded.ManualGames);
+        Assert.Equal("""D:\Game\bin\game.exe""", loaded.ExeOverrides["""D:\Game"""]);
+        Assert.Equal(new InstallRecord("""D:\Game\bin""", "version.dll", "1.7.0", new DateTime(2026, 11, 1)), Assert.Single(loaded.Installs));
+
+        store.Save(loaded);
+        Assert.Equal(Saved205.ReplaceLineEndings(), File.ReadAllText(file).ReplaceLineEndings());
+    }
+
+    [Fact]
     public void Broken_or_missing_file_gives_empty_settings()
     {
         using var temp = new TempFolder();

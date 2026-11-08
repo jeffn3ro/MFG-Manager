@@ -19,7 +19,7 @@ Arrows mean "uses". The most important rule is that **Core knows nothing about t
 1. [Program.cs](src/MfgManager.App/Program.cs) starts Avalonia.
 2. [App.axaml.cs](src/MfgManager.App/App.axaml.cs) creates the services and the window. The services are wired up by hand, without a dependency injection container.
 3. When the window opens, [MainViewModel](src/MfgManager.App/ViewModels/MainViewModel.cs) finds the mod, scans for games, then checks GitHub for a newer mod.
-4. [GameScanner](src/MfgManager.Core/Scanning/GameScanner.cs) asks each launcher for its games, and [GameInspector](src/MfgManager.Core/Scanning/GameInspector.cs) looks through each game's files.
+4. [GameScanner](src/MfgManager.Core/Scanning/GameScanner.cs) asks each launcher for its games, and [GameInspector](src/MfgManager.Core/Scanning/GameInspector.cs) looks through each game's files. This runs off the window's thread, with all launchers and all games at the same time.
 5. Each game gets a `GameViewModel`, `GroupedView` filters and groups them, and `CoverWall` draws the result through bindings.
 
 **What happens when you click Install / Update:** `GameActionsViewModel` asks any questions it needs to, checks the game isn't running, and calls [ModInstaller](src/MfgManager.Core/Mod/ModInstaller.cs), which copies the DLL. Then every game's status is refreshed.
@@ -49,7 +49,8 @@ MFG-Manager/
 │  │  │  └─ UpdateChecker.cs      latest release on GitHub, verified download, safe unzip
 │  │  ├─ Store/SteamStore.cs      covers and DRM info from Steam's public store, cached
 │  │  ├─ Settings/AppSettings.cs  what's remembered between runs (a JSON file)
-│  │  └─ PathUtil.cs              path helpers
+│  │  ├─ PathUtil.cs              path helpers
+│  │  └─ SideBySide.cs            runs disk work for many games at the same time
 │  └─ MfgManager.App/             the window
 │     ├─ Program.cs, App.axaml    start-up
 │     ├─ Components/              one folder per part of the window: Shell, Sidebar, Toolbar,
@@ -178,6 +179,15 @@ Nothing runs in the background: there are no timers, file watchers, services or 
 - **Changes made while the app is open** aren't noticed by themselves. A new game, or a file repair that removes the mod, shows after **Rescan**. A new mod release, or a new DLL in Downloads, shows after restarting the app.
 - **Steam is asked again** after a failed lookup, and at every start and Rescan for a game with a Steam ID but no cover. Games it found nothing for are remembered and not asked again.
 
+## Speed
+
+- **Release builds are machine code already** (`PublishReadyToRun` in the App project). Without it, .NET compiles the app and Avalonia each time it starts. That roughly halves the time until the games show.
+- **Disk work stays off the window's thread:** the scan, every game's mod status, and the search in `Mods` and Downloads. The window only gets the results, so it keeps responding.
+- **Launchers and games are checked at the same time** with [SideBySide](src/MfgManager.Core/SideBySide.cs). That's mostly waiting on the disk, and an SSD can answer many requests at once.
+- **A game's size doesn't matter, only its number of files.** Files are listed, never read. Borderlands 4 is about 200 GB in about 3,000 files and takes about 30 ms.
+- **Install, Remove, Revert all and Change .exe wait while a scan runs**, because the scan reads the same folders and settings in the background.
+- **The first start after a big download is slower.** Windows has to load .NET and the app from disk again, and antivirus checks them again.
+
 ## Security design
 
 The app talks to `api.github.com`, `github.com`, `store.steampowered.com`, `api.steampowered.com` and `shared.akamai.steamstatic.com`, over HTTPS only. To look up a game not on Steam on your computer, it sends the game's name to Steam's store search. It has no telemetry, and building it needs no accounts or keys.
@@ -207,7 +217,7 @@ Because the app runs as admin on Windows, anything from outside is treated with 
 
 - **Shipped with the app:** Avalonia, its Fluent theme and the Inter font, and what those bring along: SkiaSharp and HarfBuzzSharp for drawing, ANGLE on Windows, Tmds.DBus on Linux, and MicroCom. Their notices are in `src/MfgManager.App/Licenses`.
 - **Only for tests:** xunit.v3 and Avalonia.Headless.
-- **Only for building:** WiX, apart from its small setup helpers inside the `.msi`. Its licence asks for a fee only from users who generate revenue with it.
+- **Only for building:** WiX, apart from its small setup helpers inside the `.msi`. Its licence asks for a fee only from users who generate revenue with it. Also Microsoft's `Microsoft.NETCore.App.Crossgen2`, which turns release builds into machine code (see [Speed](#speed)).
 - **Blocked on purpose:** `Avalonia.BuildServices`. Avalonia requires this package, and it reports build information to Avalonia's servers when you compile. `ExcludeAssets="all"` keeps its code out, and `BuildPrivacyTests` fails if that changes.
 
 To check for known security problems:
@@ -251,7 +261,7 @@ dotnet test --project tests/MfgManager.Tests
 
 Normal test runs use a fake web and fake game folders, so they don't need the internet or your games.
 
-- **`Core/`:** finding games in every launcher, the game inspector, the mod installer, updates and tampered downloads, reading DLL versions, `GroupedView`, Linux paths, and the packaging files.
+- **`Core/`:** finding games in every launcher, the scanner, the game inspector, the mod installer, updates and tampered downloads, reading DLL versions, `GroupedView`, Linux paths, and the packaging files.
 - **`ViewModels/`:** filters, grouping, every button's rules, the warning questions, and `ScanRulesTests`.
 - **`Components/`:** every component really drawn in both modes, without opening a window. `StateTests` moves the mouse over every button, presses them, ticks boxes, opens dropdowns and selects text, then checks the colours in each state.
 
@@ -291,7 +301,7 @@ This skips the admin prompt, and the next normal build puts it back.
 powershell -File tools/build-installer.ps1
 ```
 
-This makes `artifacts/MFG-Manager-<version>.msi`. It always compiles from scratch, because a build otherwise reuses earlier results even when they were made with other settings. It stops with an error if the program wouldn't ask for admin rights, still allows startup hooks, or mentions the build computer's folders. Release builds leave out debug information because it holds those paths. Share only the `.msi`: the `.wixpdb` next to it, if there is one, is for developers and can contain them.
+This makes `artifacts/MFG-Manager-<version>.msi`. The first time, it downloads Microsoft's machine-code compiler from NuGet. It always compiles from scratch, because a build otherwise reuses earlier results even when they were made with other settings. It stops with an error if the program wouldn't ask for admin rights, still allows startup hooks, or mentions the build computer's folders. Release builds leave out debug information because it holds those paths. Share only the `.msi`: the `.wixpdb` next to it, if there is one, is for developers and can contain them.
 
 Installing replaces the old version and keeps the `Mods` folder and settings. Uninstalling removes `Mods` too, but your settings and the mod in your games stay, so use **Revert all** first if you want the games clean.
 

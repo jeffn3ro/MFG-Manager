@@ -7,6 +7,10 @@ namespace MfgManager.Core.Scanning;
 
 /// <summary>Asks every launcher for its games, removes duplicates, then inspects each game.</summary>
 /// <param name="launchers">Where games come from. Tests pass their own; the app uses every launcher on the system.</param>
+/// <remarks>
+/// The launchers are asked at the same time, and the games are looked through at the same time, because both are
+/// mostly waiting on the disk. Each game is only changed by its own check, so they can't get in each other's way.
+/// </remarks>
 public sealed class GameScanner(AppSettings settings, IReadOnlyList<Func<IEnumerable<Game>>>? launchers = null)
 {
     public IReadOnlyList<Game> Scan(IProgress<string>? progress = null)
@@ -17,31 +21,41 @@ public sealed class GameScanner(AppSettings settings, IReadOnlyList<Func<IEnumer
             .Select(group => group.First())
             .ToList();
 
-        for (int i = 0; i < games.Count; i++)
+        int started = 0;
+        SideBySide.For(games.Count, i =>
         {
             Game game = games[i];
-            progress?.Report($"Checking {i + 1} of {games.Count}: {game.Name}");
+            progress?.Report($"Checking {Interlocked.Increment(ref started)} of {games.Count}: {game.Name}");
             settings.ExeOverrides.TryGetValue(game.Folder, out string? exeOverride);
             GameInspector.Inspect(game, exeOverride);
-        }
+        });
         return games;
     }
 
-    private IEnumerable<Game> FindAllGames()
+    private List<Game> FindAllGames()
     {
-        // Each launcher is wrapped so one broken launcher can't stop the whole scan.
-        // Launchers that only exist on one system simply find nothing on the other.
         var sources = new List<Func<IEnumerable<Game>>>(launchers ?? AllLaunchers())
         {
             () => settings.ManualGames.Where(File.Exists).Select(ManualGame),
         };
 
-        foreach (Func<IEnumerable<Game>> source in sources)
+        // Each answer keeps its launcher's place in the list, so when two launchers report the same folder,
+        // the one higher in the list wins, whichever answered first.
+        var found = new List<Game>[sources.Count];
+        SideBySide.For(sources.Count, i => found[i] = Ask(sources[i]));
+        return [.. found.SelectMany(games => games)];
+    }
+
+    /// <summary>One broken launcher can't stop the whole scan. Launchers that only exist on one system simply find nothing on the other.</summary>
+    private static List<Game> Ask(Func<IEnumerable<Game>> source)
+    {
+        try
         {
-            List<Game> found;
-            try { found = [.. source()]; }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException) { continue; }
-            foreach (Game game in found) yield return game;
+            return [.. source()];
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+        {
+            return [];
         }
     }
 

@@ -62,6 +62,24 @@ public class SteamStoreTests
     }
 
     [Fact]
+    public async Task A_cache_file_saved_by_2_0_5_is_still_used_without_going_online()
+    {
+        using var temp = new TempFolder();
+        // Exactly what 2.0.5 wrote, before the JSON code was generated while building.
+        temp.File("store-cache.json", """{"AppIds":{"Some Game":42,"Not On Steam":null},"Drm":{"42":{"Notice":"Denuvo Anti-tamper","Tags":["Denuvo"]}}}""");
+        var web = new FakeWeb();
+        var store = new SteamStore(web.Client(), temp.Path);
+
+        StoreDrm? drm = await store.GetDrmAsync(new Game { Name = "Some Game", Launcher = Launcher.Epic, Folder = temp.Path });
+        int? notOnSteam = await store.FindAppIdAsync("Not On Steam");
+
+        Assert.Equal(["Denuvo"], drm!.Tags);
+        Assert.Equal("Denuvo Anti-tamper", drm.Notice);
+        Assert.Null(notOnSteam);
+        Assert.Empty(web.Requests);
+    }
+
+    [Fact]
     public async Task Downloads_cover_and_drm_once_then_uses_the_cache()
     {
         using var temp = new TempFolder();

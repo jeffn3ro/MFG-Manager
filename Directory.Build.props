@@ -9,7 +9,7 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <Company>MFG Manager</Company>
     <Product>MFG Manager</Product>
-    <Version>2.0.5</Version>
+    <Version>2.0.6</Version>
   </PropertyGroup>
 
   <!-- Debug information holds the build computer's folder paths, which would end up in the files people download. -->

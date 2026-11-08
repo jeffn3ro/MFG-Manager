@@ -94,7 +94,8 @@ public sealed class ModViewModel : ObservableObject
             return;
         }
 
-        (ModPackage? inMods, ModPackage? newer) = ModPackage.FindCopies(_modsFolder, _downloadsFolder);
+        // Searching Downloads is disk work, so it runs off the window's thread.
+        (ModPackage? inMods, ModPackage? newer) = await Task.Run(() => ModPackage.FindCopies(_modsFolder, _downloadsFolder));
         if (newer is not null && await _dialogs.ConfirmAsync(
                 $"There's a newer MFG Unlocker (v{newer.Version.ToString(3)}) in your Downloads folder:\n{newer.DllPath}\n\n" +
                 $"Only use it if you downloaded it yourself from {UpdateChecker.ReleasesPage}\n\nCopy it into MFG Manager and use it?", warning: true))
