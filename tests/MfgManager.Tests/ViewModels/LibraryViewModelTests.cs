@@ -36,7 +36,7 @@ public class LibraryViewModelTests
     }
 
     [Fact]
-    public void A_game_with_the_mod_stays_visible_even_without_frame_gen()
+    public async Task A_game_with_the_mod_stays_visible_even_without_frame_gen()
     {
         using var s = new AppSetup();
         GameViewModel game = s.AddGame("Plain", Launcher.Steam, frameGen: false);
@@ -44,7 +44,7 @@ public class LibraryViewModelTests
 
         s.Library.OnlyFrameGen = false;
         s.Library.SelectedGame = game;
-        s.Actions.InstallCommand.Execute(null);
+        await s.Actions.InstallCommand.ExecuteAsync();
         s.Library.OnlyFrameGen = true;
 
         Assert.Equal(["Plain"], s.Shown());

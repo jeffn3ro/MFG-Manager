@@ -6,6 +6,8 @@ namespace MfgManager.Core.Settings;
 /// <summary>Loads and saves <see cref="AppSettings"/> to a JSON file.</summary>
 public sealed class SettingsStore(string filePath)
 {
+    private readonly Lock _saving = new();
+
     public AppSettings Load()
     {
         if (!File.Exists(filePath)) return new AppSettings();
@@ -43,10 +45,15 @@ public sealed class SettingsStore(string filePath)
 
     public void Save(AppSettings settings)
     {
-        AppPaths.EnsureFolder(Path.GetDirectoryName(filePath)!);
-        // Write to a temp file first so a crash mid-write can't leave a half-written settings file.
-        string temp = filePath + ".tmp";
-        File.WriteAllText(temp, JsonSerializer.Serialize(settings, SettingsJson.Default.AppSettings));
-        File.Move(temp, filePath, overwrite: true);
+        // Install and Remove save from a background thread, and the window can save a theme change at the same moment.
+        // Both would write the same temp file, so one waits for the other.
+        lock (_saving)
+        {
+            AppPaths.EnsureFolder(Path.GetDirectoryName(filePath)!);
+            // Write to a temp file first so a crash mid-write can't leave a half-written settings file.
+            string temp = filePath + ".tmp";
+            File.WriteAllText(temp, JsonSerializer.Serialize(settings, SettingsJson.Default.AppSettings));
+            File.Move(temp, filePath, overwrite: true);
+        }
     }
 }

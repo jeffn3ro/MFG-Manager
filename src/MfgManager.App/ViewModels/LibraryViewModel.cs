@@ -245,18 +245,18 @@ public sealed class LibraryViewModel : ObservableObject
         try
         {
             await Task.Run(() => GameInspector.Inspect(card?.Game ?? game, exe));
+            if (card is null)
+            {
+                card = new GameViewModel(game, select => SelectedGame = select);
+                Games.Add(card);
+            }
+            await RefreshStatusesAsync();
         }
         finally
         {
             _status.IsBusy = false;
         }
-        if (card is null)
-        {
-            card = new GameViewModel(game, select => SelectedGame = select);
-            Games.Add(card);
-        }
 
-        RefreshStatuses();
         RefreshFilterOptions();
         // Otherwise the filter would hide it.
         if (!card.HasFrameGen) OnlyFrameGen = false;
@@ -272,6 +272,16 @@ public sealed class LibraryViewModel : ObservableObject
     {
         List<GameViewModel> games = [.. Games];
         ApplyStatuses(games, ReadStatuses([.. games.Select(game => game.Game)], Mod));
+    }
+
+    /// <summary>The same, but the disk is read in the background so the window keeps responding.</summary>
+    public async Task RefreshStatusesAsync()
+    {
+        List<GameViewModel> games = [.. Games];
+        List<Game> models = [.. games.Select(game => game.Game)];
+        ModPackage? mod = Mod;
+        StatusRead[] statuses = await Task.Run(() => ReadStatuses(models, mod));
+        ApplyStatuses(games, statuses);
     }
 
     /// <summary>Reads every game's mod status from disk at the same time. Safe to run off the window's thread.</summary>

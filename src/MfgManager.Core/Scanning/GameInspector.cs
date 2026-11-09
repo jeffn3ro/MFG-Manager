@@ -87,9 +87,10 @@ public static partial class GameInspector
         // so there's no separate file to find. Flag them anyway, so you're always warned.
         if (game.AntiCheat is null && game.Launcher == Launcher.BattleNet) game.AntiCheat = "Blizzard anti-cheat (built in)";
 
-        game.Drm.Clear();
-        game.Drm.AddRange(files.Select(f => DrmFiles.GetValueOrDefault(f.Name)).OfType<string>().Distinct());
-        if (LauncherDrm.GetValueOrDefault(game.Launcher) is { } launcherDrm && !game.Drm.Contains(launcherDrm)) game.Drm.Add(launcherDrm);
+        // Built first, then swapped in: this can run in the background while the window reads the game's DRM.
+        List<string> drm = [.. files.Select(f => DrmFiles.GetValueOrDefault(f.Name)).OfType<string>().Distinct()];
+        if (LauncherDrm.GetValueOrDefault(game.Launcher) is { } launcherDrm && !drm.Contains(launcherDrm)) drm.Add(launcherDrm);
+        game.Drm = drm;
 
         // settings.json can be changed by any program, and the mod goes next to this .exe, so it has to belong to this game.
         bool useOverride = exeOverride is not null && File.Exists(exeOverride) && PathUtil.IsInside(exeOverride, game.Folder);

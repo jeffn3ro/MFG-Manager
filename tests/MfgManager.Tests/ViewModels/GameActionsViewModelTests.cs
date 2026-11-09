@@ -1,4 +1,5 @@
 using MfgManager.App.ViewModels;
+using MfgManager.Core.Mod;
 using MfgManager.Core.Models;
 
 namespace MfgManager.Tests.ViewModels;
@@ -312,12 +313,12 @@ public class GameActionsViewModelTests
     }
 
     [Fact]
-    public void Buttons_that_change_games_wait_while_a_scan_runs()
+    public async Task Buttons_that_change_games_wait_while_a_scan_runs()
     {
         using var s = new AppSetup();
         GameViewModel game = s.AddGame("Alpha", Launcher.Steam);
         s.Library.SelectedGame = game;
-        s.Actions.InstallCommand.Execute(null);
+        await s.Actions.InstallCommand.ExecuteAsync();
         Assert.True(game.CanRemove);
         RelayCommand[] buttons = [s.Actions.InstallCommand, s.Actions.RemoveCommand, s.Actions.RevertAllCommand, s.Actions.ChangeExeCommand];
         int changes = 0;
@@ -330,5 +331,63 @@ public class GameActionsViewModelTests
         Assert.All(buttons, button => Assert.True(button.CanExecute()));
         // The window only re-checks a button when it's told to.
         Assert.True(changes >= buttons.Length * 2);
+    }
+
+    [Fact]
+    public async Task Install_runs_in_the_background_and_the_window_shows_it_until_done()
+    {
+        using var s = new AppSetup();
+        GameViewModel game = s.AddGame("Alpha", Launcher.Steam);
+        s.Library.SelectedGame = game;
+        using var started = new ManualResetEventSlim();
+        using var carryOn = new ManualResetEventSlim();
+        int workThread = 0;
+        // Saving happens inside Install, so holding it here holds the install half-way, like a slow disk would.
+        void SlowSave()
+        {
+            workThread = Environment.CurrentManagedThreadId;
+            started.Set();
+            carryOn.Wait(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        }
+        var installer = new ModInstaller(s.Settings, SlowSave, s.Temp.Folder("removed-here"), FakeMod.ReadVersion);
+        var actions = new GameActionsViewModel(s.Library, s.Vm.Mod, installer, s.Settings, SlowSave, s.Dialogs, s.Vm.Status, _ => false);
+
+        Task install = actions.InstallCommand.ExecuteAsync();
+        Assert.True(started.Wait(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken));
+
+        // The click came back while the install was still going: the window would have kept answering.
+        Assert.False(install.IsCompleted);
+        Assert.NotEqual(Environment.CurrentManagedThreadId, workThread);
+        Assert.True(s.Vm.Status.IsBusy);
+        Assert.Equal("Installing MFG Unlocker in Alpha...", s.Vm.Status.Text);
+        Assert.False(actions.Changing.IsCompleted);
+        Assert.False(actions.RemoveCommand.CanExecute());
+
+        carryOn.Set();
+        await install;
+
+        Assert.True(actions.Changing.IsCompleted);
+        Assert.False(s.Vm.Status.IsBusy);
+        Assert.Equal("Installed MFG Unlocker v1.7.0 in Alpha as version.dll.", s.Vm.Status.Text);
+        Assert.True(game.CanRemove);
+    }
+
+    [Fact]
+    public async Task A_failed_change_shows_why_puts_the_status_back_and_lets_the_window_close()
+    {
+        using var s = new AppSetup();
+        GameViewModel game = s.AddGame("Alpha", Launcher.Steam);
+        s.Library.SelectedGame = game;
+        game.SelectedInstallName = "dxgi.dll";
+        s.Temp.File("games/Alpha/dxgi.dll", "the game's own file");
+        s.Vm.Status.Text = "Found 1 game.";
+
+        await s.Actions.InstallCommand.ExecuteAsync();
+
+        Assert.Contains("dxgi.dll already exists", s.Dialogs.Messages.Single());
+        Assert.Equal("Found 1 game.", s.Vm.Status.Text);
+        Assert.False(s.Vm.Status.IsBusy);
+        // Closing the window waits for this, so it mustn't fail even though the install did.
+        Assert.True(s.Actions.Changing.IsCompletedSuccessfully);
     }
 }

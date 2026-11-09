@@ -24,6 +24,23 @@ public class GameInspectorTests
     }
 
     [Fact]
+    public void Drm_is_swapped_in_as_a_new_list_never_changed_in_place()
+    {
+        // Change .exe checks a game in the background while the window may be reading its DRM.
+        using var temp = new TempFolder();
+        temp.File("Game.exe", "x");
+        temp.File("steam_api64.dll");
+        Game game = NewGame(temp.Path);
+        List<string> before = game.Drm;
+
+        GameInspector.Inspect(game);
+
+        Assert.Empty(before);
+        Assert.NotSame(before, game.Drm);
+        Assert.Equal(["Steamworks"], game.Drm);
+    }
+
+    [Fact]
     public void Helper_exes_are_never_picked()
     {
         using var temp = new TempFolder();

@@ -6,7 +6,7 @@
 # It builds from this folder's own source code, so there's nothing to download but the .NET and Avalonia packages.
 
 pkgname=mfg-manager
-pkgver=2.0.6
+pkgver=2.0.7
 pkgrel=1
 pkgdesc='Finds your games and installs the MFG Unlocker mod for DLSS Frame Generation'
 arch=('x86_64')

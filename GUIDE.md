@@ -22,7 +22,7 @@ Arrows mean "uses". The most important rule is that **Core knows nothing about t
 4. [GameScanner](src/MfgManager.Core/Scanning/GameScanner.cs) asks each launcher for its games, and [GameInspector](src/MfgManager.Core/Scanning/GameInspector.cs) looks through each game's files. This runs off the window's thread, with all launchers and all games at the same time.
 5. Each game gets a `GameViewModel`, `GroupedView` filters and groups them, and `CoverWall` draws the result through bindings.
 
-**What happens when you click Install / Update:** `GameActionsViewModel` asks any questions it needs to, checks the game isn't running, and calls [ModInstaller](src/MfgManager.Core/Mod/ModInstaller.cs), which copies the DLL. Then every game's status is refreshed.
+**What happens when you click Install / Update:** `GameActionsViewModel` asks any questions it needs to, checks the game isn't running, and calls [ModInstaller](src/MfgManager.Core/Mod/ModInstaller.cs), which copies the DLL. The copy runs in the background while the status bar says what's happening. Then every game's status is refreshed.
 
 ## Folder map
 
@@ -185,7 +185,9 @@ Nothing runs in the background: there are no timers, file watchers, services or 
 - **Disk work stays off the window's thread:** the scan, every game's mod status, and the search in `Mods` and Downloads. The window only gets the results, so it keeps responding.
 - **Launchers and games are checked at the same time** with [SideBySide](src/MfgManager.Core/SideBySide.cs). That's mostly waiting on the disk, and an SSD can answer many requests at once.
 - **A game's size doesn't matter, only its number of files.** Files are listed, never read. Borderlands 4 is about 200 GB in about 3,000 files and takes about 30 ms.
-- **Install, Remove, Revert all and Change .exe wait while a scan runs**, because the scan reads the same folders and settings in the background.
+- **Install, Remove, Revert all and Change .exe run in the background too.** A slow disk, or antivirus checking the new DLL, only keeps the status message up longer instead of freezing the window. Closing the window while one runs waits until it's done, so a DLL is never left half-copied in a game.
+- **Only one thing changes games at a time.** Install, Remove, Revert all and Change .exe wait while a scan or another change runs, because those read and write the same folders and settings.
+- **Settings can be saved from two threads at once**, for example an install and a theme change. `SettingsStore` lets one save wait for the other, and the install list is always replaced, never changed in place, so a save never reads it half-changed.
 - **The first start after a big download is slower.** Windows has to load .NET and the app from disk again, and antivirus checks them again.
 
 ## Security design

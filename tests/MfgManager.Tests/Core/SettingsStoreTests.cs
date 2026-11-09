@@ -64,6 +64,20 @@ public class SettingsStoreTests
     }
 
     [Fact]
+    public void Saving_from_two_threads_at_the_same_time_works()
+    {
+        // An install saves from a background thread while a theme change can save from the window.
+        using var temp = new TempFolder();
+        var store = new SettingsStore(Path.Combine(temp.Path, "settings.json"));
+        var settings = new AppSettings { Theme = ThemeChoice.Dark };
+
+        Parallel.For(0, 200, _ => store.Save(settings));
+
+        Assert.Equal(ThemeChoice.Dark, store.Load().Theme);
+        Assert.Equal(["settings.json"], Directory.EnumerateFiles(temp.Path).Select(Path.GetFileName));
+    }
+
+    [Fact]
     public void Broken_or_missing_file_gives_empty_settings()
     {
         using var temp = new TempFolder();

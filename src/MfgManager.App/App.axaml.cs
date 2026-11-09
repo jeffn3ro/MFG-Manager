@@ -28,6 +28,15 @@ public partial class App : Application
             window.DataContext = viewModel;
             desktop.MainWindow = window;
             window.Opened += async (_, _) => await viewModel.InitializeAsync();
+            // Closing while the mod is being copied or deleted could leave half a DLL in a game folder,
+            // so the window waits until that's done, then closes by itself.
+            window.Closing += async (_, e) =>
+            {
+                if (viewModel.Actions.Changing.IsCompleted) return;
+                e.Cancel = true;
+                await viewModel.Actions.Changing;
+                window.Close();
+            };
 
             // Last safety net: an unexpected error shows a message instead of closing the app.
             Dispatcher.UIThread.UnhandledException += async (_, e) =>

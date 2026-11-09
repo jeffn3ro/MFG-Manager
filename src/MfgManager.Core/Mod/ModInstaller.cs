@@ -89,8 +89,7 @@ public sealed class ModInstaller(AppSettings settings, Action saveSettings, stri
 
         File.Copy(mod.DllPath, Path.Combine(folder, name), overwrite: true);
 
-        ForgetRecord(folder);
-        _settings.Installs.Add(new InstallRecord(folder, name, mod.Version.ToString(), DateTime.Now));
+        _settings.Installs = [.. InstallsExcept(folder), new InstallRecord(folder, name, mod.Version.ToString(), DateTime.Now)];
         _saveSettings();
         return name;
     }
@@ -118,7 +117,7 @@ public sealed class ModInstaller(AppSettings settings, Action saveSettings, stri
 
         if (removeModData) MoveModDataAway(game, folder);
 
-        ForgetRecord(folder);
+        _settings.Installs = InstallsExcept(folder);
         _saveSettings();
         return deleted;
     }
@@ -148,8 +147,12 @@ public sealed class ModInstaller(AppSettings settings, Action saveSettings, stri
         return windows.Length > 0 && (PathUtil.SameFolder(folder, windows) || PathUtil.IsInside(folder, windows));
     }
 
-    private void ForgetRecord(string folder) =>
-        _settings.Installs.RemoveAll(r => PathUtil.SameFolder(r.Folder, folder));
+    /// <summary>
+    /// The install list without this folder, as a new list. The list in the settings is only ever replaced, never changed
+    /// in place: Install and Remove run in the background while the window may be saving the settings, which reads it.
+    /// </summary>
+    private List<InstallRecord> InstallsExcept(string folder) =>
+        [.. _settings.Installs.Where(r => !PathUtil.SameFolder(r.Folder, folder))];
 
     /// <summary>Moves (not deletes) the mod's settings/logs, so nothing is lost if you change your mind.</summary>
     private void MoveModDataAway(Game game, string folder)

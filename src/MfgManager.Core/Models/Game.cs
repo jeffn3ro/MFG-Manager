@@ -30,7 +30,7 @@ public sealed class Game
     public string? AntiCheat { get; set; }
 
     /// <summary>DRM / online services the game uses, e.g. "Steamworks", "Denuvo".</summary>
-    public List<string> Drm { get; } = [];
+    public List<string> Drm { get; set; } = [];
 
     public string? ExeFolder => Exe is null ? null : Path.GetDirectoryName(Exe);
 }

@@ -81,23 +81,25 @@ public sealed class GameActionsViewModel : ObservableObject
             return;
         if (await IsRunningAsync(game)) return;
 
-        await RunAsync(() =>
+        bool wasInstalled = game.Status.DllName is not null;
+        string? preferred = game.SelectedInstallName == GameViewModel.AutoName ? null : game.SelectedInstallName;
+        string gameName = game.Name;
+        await RunAsync($"Installing MFG Unlocker in {gameName}...", () =>
         {
-            bool wasInstalled = game.Status.DllName is not null;
-            string? preferred = game.SelectedInstallName == GameViewModel.AutoName ? null : game.SelectedInstallName;
             string name = _installer.Install(game.Game, mod, preferred);
-            _status.Text = $"{(wasInstalled ? "Updated" : "Installed")} MFG Unlocker v{mod.Version.ToString(3)} in {game.Name} as {name}.";
+            return $"{(wasInstalled ? "Updated" : "Installed")} MFG Unlocker v{mod.Version.ToString(3)} in {gameName} as {name}.";
         });
     }
 
     private async Task RemoveAsync()
     {
         if (Game is not { } game || await IsRunningAsync(game)) return;
-        await RunAsync(() =>
-        {
-            bool deleted = _installer.Remove(game.Game, RemoveModData);
-            _status.Text = deleted ? $"Removed the mod from {game.Name}." : $"Forgot about the mod in {game.Name} (its file was already gone or replaced).";
-        });
+
+        bool removeModData = RemoveModData;
+        string gameName = game.Name;
+        await RunAsync($"Removing the mod from {gameName}...", () => _installer.Remove(game.Game, removeModData)
+            ? $"Removed the mod from {gameName}."
+            : $"Forgot about the mod in {gameName} (its file was already gone or replaced).");
     }
 
     private async Task RevertAllAsync()
@@ -109,10 +111,13 @@ public sealed class GameActionsViewModel : ObservableObject
         foreach (GameViewModel game in games)
             if (await IsRunningAsync(game)) return;
 
-        await RunAsync(() =>
+        bool removeModData = RemoveModData;
+        string count = LibraryViewModel.CountOfGames(games.Count);
+        var models = games.Select(game => game.Game).ToList();
+        await RunAsync($"Removing the mod from {count}...", () =>
         {
-            foreach (GameViewModel game in games) _installer.Remove(game.Game, RemoveModData);
-            _status.Text = $"Removed the mod from {LibraryViewModel.CountOfGames(games.Count)}.";
+            foreach (Core.Models.Game game in models) _installer.Remove(game, removeModData);
+            return $"Removed the mod from {count}.";
         });
     }
 
@@ -135,7 +140,11 @@ public sealed class GameActionsViewModel : ObservableObject
 
         _settings.ExeOverrides[game.Folder] = exe;
         _saveSettings();
-        await RunAsync(() => GameInspector.Inspect(game.Game, exe));
+        await RunAsync($"Checking {game.Name}...", () =>
+        {
+            GameInspector.Inspect(game.Game, exe);
+            return null;
+        });
     }
 
     private void OpenFolder()
@@ -157,23 +166,54 @@ public sealed class GameActionsViewModel : ObservableObject
         return true;
     }
 
-    /// <summary>Runs an action, shows any error in a dialog instead of crashing, then refreshes the cards.</summary>
-    private async Task RunAsync(Action action)
+    /// <summary>
+    /// The install, remove or check that's running right now, or a finished task when there's none. It never fails,
+    /// so closing the window can wait for it without having to handle its errors.
+    /// </summary>
+    public Task Changing { get; private set; } = Task.CompletedTask;
+
+    /// <summary>
+    /// Changes game folders in the background, so a slow disk, or a virus scanner checking the new DLL, can't freeze
+    /// the window. Shows any error in a dialog instead of crashing, then refreshes the cards. The buttons that change
+    /// games wait until it's done.
+    /// </summary>
+    /// <param name="working">Shown in the status bar while it runs.</param>
+    /// <param name="work">
+    /// The change. It runs on another thread, so it mustn't touch anything on screen.
+    /// It returns what the status bar shows afterwards, or null to leave it as it was.
+    /// </param>
+    private async Task RunAsync(string working, Func<string?> work)
     {
+        string before = _status.Text;
+        _status.IsBusy = true;
+        _status.Text = working;
         try
         {
-            action();
+            Task<string?> running = Task.Run(work);
+            // WhenAny finishes with the work but never throws its error; that's handled right below.
+            Changing = Task.WhenAny(running);
+            _status.Text = await running ?? before;
         }
         catch (UnauthorizedAccessException)
         {
+            _status.Text = before;
             await _dialogs.ShowAsync(OperatingSystem.IsWindows()
                 ? "Windows didn't allow changing files in that folder. Make sure MFG Manager runs as administrator."
                 : "The system didn't allow changing files in that folder. Check that your user owns the game folder.", error: true);
         }
         catch (Exception ex) when (ex is InvalidOperationException or ArgumentException or IOException)
         {
+            _status.Text = before;
             await _dialogs.ShowAsync(ex.Message, error: true);
         }
-        _library.RefreshStatuses();
+
+        try
+        {
+            await _library.RefreshStatusesAsync();
+        }
+        finally
+        {
+            _status.IsBusy = false;
+        }
     }
 }

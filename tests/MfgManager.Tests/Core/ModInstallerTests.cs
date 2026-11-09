@@ -40,6 +40,22 @@ public sealed class ModInstallerTests : IDisposable
     }
 
     [Fact]
+    public void The_install_list_is_replaced_never_changed_in_place()
+    {
+        // Install and Remove run in the background while the window may be saving the settings, which reads this list.
+        List<InstallRecord> beforeInstall = _settings.Installs;
+        _installer.Install(_game, FakeMod.Create(_temp, "1.7.0"));
+        List<InstallRecord> afterInstall = _settings.Installs;
+        _installer.Remove(_game);
+
+        Assert.Empty(beforeInstall);
+        Assert.NotSame(beforeInstall, afterInstall);
+        Assert.Single(afterInstall);
+        Assert.NotSame(afterInstall, _settings.Installs);
+        Assert.Empty(_settings.Installs);
+    }
+
+    [Fact]
     public void Auto_never_overwrites_a_dll_that_belongs_to_the_game()
     {
         File.WriteAllText(InGame("version.dll"), "the game's own file");
